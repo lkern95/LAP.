@@ -1,0 +1,9 @@
+{
+  "sleepMinutes": 468,
+  "restingHeartRateBpm": 56,
+  "workouts": [
+    { "daysAgo": 1, "durationMinutes": 38, "distanceMeters": 5200, "averageHeartRateBpm": 142 },
+    { "daysAgo": 3, "durationMinutes": 44, "distanceMeters": 6100, "averageHeartRateBpm": 146 },
+    { "daysAgo": 4, "durationMinutes": 76, "distanceMeters": 9800, "averageHeartRateBpm": 149 }
+  ]
+}

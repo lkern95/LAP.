@@ -1,0 +1,14 @@
+.gradle/
+.gradle-home/
+.android-user/
+.idea/
+.kotlin/
+local.properties
+**/build/
+*.iml
+captures/
+.externalNativeBuild/
+.cxx/
+*.jks
+*.keystore
+docs/audits/snapshots/*.zip
