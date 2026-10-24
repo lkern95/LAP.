@@ -30,6 +30,7 @@ import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -37,6 +38,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.window.DialogWindowProvider
+import de.run.app.presentation.theme.LocalCoachArtworkStyle
 import kotlinx.coroutines.delay
 
 /** Shared full-screen popup with the app's common motion, dimming, and platform blur. */
@@ -45,6 +47,7 @@ fun AppPopup(
     visible: Boolean,
     title: String,
     onDismiss: () -> Unit,
+    coachArtwork: Boolean = false,
     content: @Composable () -> Unit
 ) {
     var dialogShown by remember { mutableStateOf(false) }
@@ -84,20 +87,39 @@ fun AppPopup(
                     enter = fadeIn() + scaleIn(initialScale = 0.96f),
                     exit = fadeOut() + scaleOut(targetScale = 0.96f)
                 ) {
-                    Card(
-                        modifier = Modifier
-                            .padding(horizontal = 24.dp)
-                            .clickable(onClick = {}),
-                        shape = RoundedCornerShape(24.dp),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
-                    ) {
-                        Column(Modifier.padding(20.dp)) {
+                    if (coachArtwork) {
+                        CoachArtworkCard(
+                            modifier = Modifier.padding(horizontal = 8.dp),
+                            style = LocalCoachArtworkStyle.current,
+                            consumeClicks = true
+                        ) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                Text(title, style = MaterialTheme.typography.titleLarge, modifier = Modifier.weight(1f))
+                                Text(
+                                    title,
+                                    style = MaterialTheme.typography.titleLarge,
+                                    color = LocalCoachArtworkStyle.current.titleColor,
+                                    fontWeight = FontWeight.Bold,
+                                    modifier = Modifier.weight(1f)
+                                )
                                 IconButton(onClick = onDismiss) { Text("×", style = MaterialTheme.typography.titleLarge) }
                             }
                             content()
+                        }
+                    } else {
+                        val shape = RoundedCornerShape(24.dp)
+                        Card(
+                            modifier = Modifier.padding(horizontal = 24.dp).clickable(onClick = {}),
+                            shape = shape,
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                            elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+                        ) {
+                            Column(Modifier.padding(20.dp)) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Text(title, style = MaterialTheme.typography.titleLarge, modifier = Modifier.weight(1f))
+                                    IconButton(onClick = onDismiss) { Text("×", style = MaterialTheme.typography.titleLarge) }
+                                }
+                                content()
+                            }
                         }
                     }
                 }

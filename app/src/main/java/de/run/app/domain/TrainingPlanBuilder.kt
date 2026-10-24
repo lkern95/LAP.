@@ -11,7 +11,10 @@ import de.run.app.domain.model.TrainingGoal
 import de.run.app.domain.model.TrainingGoalStatus
 import de.run.app.domain.model.TrainingPlanMode
 import de.run.app.domain.model.TrainingWeek
+import de.run.app.domain.model.RunPrescription
+import de.run.app.domain.model.TrainingType
 import de.run.app.domain.model.Workout
+import de.run.app.domain.model.isRunning
 import java.time.LocalDate
 import java.time.DayOfWeek
 import java.time.temporal.TemporalAdjusters
@@ -22,20 +25,24 @@ class TrainingPlanBuilder(
     private val responseAnalyzer: TrainingResponseAnalyzer = TrainingResponseAnalyzer()
 ) {
     private val availabilityPlanner = TrainingAvailabilityPlanner()
+    private val prescriptionAnalyzer = RunPrescriptionAnalyzer()
     fun build(
         profile: TrainingProfile,
         goal: TrainingGoal?,
         today: LocalDate,
         workouts: List<Workout> = emptyList()
-    ): TrainingPlan = when (profile.planMode) {
-        TrainingPlanMode.PAUSED -> TrainingPlan(goal?.raceDate, PlanStatus.PAUSED, emptyList())
-        TrainingPlanMode.MAINTAIN_FORM -> buildMaintenancePlan(profile, today, workouts)
-        TrainingPlanMode.RACE -> when {
+    ): TrainingPlan {
+        val runs = workouts.filter(Workout::isRunning)
+        return when (profile.planMode) {
+            TrainingPlanMode.PAUSED -> TrainingPlan(goal?.raceDate, PlanStatus.PAUSED, emptyList())
+            TrainingPlanMode.MAINTAIN_FORM -> buildMaintenancePlan(profile, today, runs)
+            TrainingPlanMode.RACE -> when {
             goal?.status == TrainingGoalStatus.COMPLETED ->
                 TrainingPlan(goal.raceDate, PlanStatus.GOAL_COMPLETED, emptyList())
             goal?.status != TrainingGoalStatus.ACTIVE ->
                 TrainingPlan(goal?.raceDate, PlanStatus.GOAL_NEEDED, emptyList())
-            else -> buildRacePlan(profile, goal, today, workouts)
+            else -> buildRacePlan(profile, goal, today, runs)
+            }
         }
     }
 
@@ -61,6 +68,8 @@ class TrainingPlanBuilder(
             PlanAdjustment.REPEAT_WEEK -> 1
             PlanAdjustment.RETURN_GENTLY -> 2
             PlanAdjustment.REPEAT_AFTER_HIGH_EFFORT -> 1
+            PlanAdjustment.RECOVER_AFTER_HIGH_LOAD -> 1
+            PlanAdjustment.HOLD_AFTER_SLOWING -> 1
             PlanAdjustment.REVIEW_REPORTED_SYMPTOMS -> 2
             else -> 0
         }
@@ -73,11 +82,13 @@ class TrainingPlanBuilder(
                     profile,
                     today.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY)).plusWeeks(offset.toLong()),
                     firstWeekIndex + offset,
+                    offset + 1,
                     count,
                     today,
                     previousPlannedRunDate,
                     progress,
-                    response
+                    response,
+                    workouts
                 )
                 add(week)
                 week.scheduledRuns.maxByOrNull { scheduled ->
@@ -101,10 +112,14 @@ class TrainingPlanBuilder(
         val weeks = (0 until MAINTENANCE_CYCLE_WEEKS).map { index ->
             val startsOn = today.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY)).plusWeeks(index.toLong())
             val isRecoveryWeek = index == MAINTENANCE_CYCLE_WEEKS - 1
-            val longRunMinutes = if (isRecoveryWeek) {
+            val responseRecovery = index == 0 && response in setOf(
+                TrainingResponse.RECOVER_AFTER_HIGH_LOAD,
+                TrainingResponse.HOLD_AFTER_SLOWING
+            )
+            val longRunMinutes = if (isRecoveryWeek || responseRecovery) {
                 (steadyLongRun - RECOVERY_REDUCTION_MINUTES).coerceAtLeast(MIN_MAINTENANCE_LONG_RUN)
             } else steadyLongRun
-            val runs = maintenanceRuns(profile, progress, today, longRunMinutes, isRecoveryWeek, response)
+            val runs = maintenanceRuns(profile, progress, today, longRunMinutes, isRecoveryWeek, response, workouts)
             val week = availabilityPlanner.buildWeek(
                 profile = profile,
                 startsOn = startsOn,
@@ -112,7 +127,7 @@ class TrainingPlanBuilder(
                 previousRunDate = previousRunDate,
                 weekNumber = index + 1,
                 longRunMinutes = longRunMinutes,
-                isRecoveryWeek = isRecoveryWeek,
+                isRecoveryWeek = isRecoveryWeek || responseRecovery,
                 candidateRuns = runs
             )
             week.scheduledRuns.maxByOrNull { it.day.value }?.let {
@@ -129,15 +144,12 @@ class TrainingPlanBuilder(
         today: LocalDate,
         longRunMinutes: Int,
         isRecoveryWeek: Boolean,
-        response: TrainingResponse
+        response: TrainingResponse,
+        workouts: List<Workout>
     ): List<PlannedRun> {
         val easyMinutes = (profile.usualRunTimeLimitMinutes - 10).coerceIn(20, 35)
         val runs = mutableListOf(
-            PlannedRun("Lockerer Lauf", false, listOf(
-                RunStep("Zügig gehen", WARM_UP_MINUTES),
-                RunStep("Locker laufen", easyMinutes),
-                RunStep("Locker gehen", COOL_DOWN_MINUTES)
-            )),
+            if (response in setOf(TrainingResponse.RECOVER_AFTER_HIGH_LOAD, TrainingResponse.HOLD_AFTER_SLOWING)) recoveryRun() else easyRun(easyMinutes),
             longRun(longRunMinutes)
         )
         val consistent = progress.runsLastFourWeeks >= MIN_RUNS_FOR_OPTIONAL &&
@@ -146,7 +158,7 @@ class TrainingPlanBuilder(
         if (profile.optionalRun && consistent && !isRecoveryWeek && response == TrainingResponse.NO_CHANGE) {
             runs.add(optionalRun(0))
         }
-        return runs
+        return runs.map { withPrescription(it, workouts, today) }
     }
 
     private fun adjustmentFor(
@@ -156,6 +168,8 @@ class TrainingPlanBuilder(
     ): PlanAdjustment = when (response) {
         TrainingResponse.REVIEW_REPORTED_SYMPTOMS -> PlanAdjustment.REVIEW_REPORTED_SYMPTOMS
         TrainingResponse.REPEAT_AFTER_HIGH_EFFORT -> PlanAdjustment.REPEAT_AFTER_HIGH_EFFORT
+        TrainingResponse.RECOVER_AFTER_HIGH_LOAD -> PlanAdjustment.RECOVER_AFTER_HIGH_LOAD
+        TrainingResponse.HOLD_AFTER_SLOWING -> PlanAdjustment.HOLD_AFTER_SLOWING
         TrainingResponse.NO_CHANGE -> when {
             progress.lastRunDate == null -> PlanAdjustment.NO_RUN_DATA
             !progress.lastRunDate.isAfter(today.minusDays(14)) -> PlanAdjustment.RETURN_GENTLY
@@ -168,27 +182,48 @@ class TrainingPlanBuilder(
         profile: TrainingProfile,
         startsOn: LocalDate,
         index: Int,
+        weekNumber: Int,
         weekCount: Int,
         today: LocalDate,
         previousPlannedRunDate: LocalDate?,
         progress: TrainingProgress,
-        response: TrainingResponse
+        response: TrainingResponse,
+        workouts: List<Workout>
     ): TrainingWeek {
         val plannedLongRun = LONG_RUN_MINUTES[index]
-        val longRun = maxOf(plannedLongRun, profile.longestComfortableRunMinutes.coerceAtMost(MAX_LONG_RUN_MINUTES))
+        val measuredLongRun = (progress.longestRunMinutesLastFourWeeks
+            .takeIf { it > 0 } ?: profile.longestComfortableRunMinutes)
+            .coerceIn(MIN_LONG_RUN_MINUTES, MAX_LONG_RUN_MINUTES)
+        val consistentRecentTraining = progress.runsLastFourWeeks >= MIN_RUNS_FOR_OPTIONAL &&
+            progress.runsPreviousWeek >= REQUIRED_WEEKLY_RUNS &&
+            progress.lastRunDate?.isAfter(today.minusDays(8)) == true
+        val progressionAllowance = if (consistentRecentTraining && response == TrainingResponse.NO_CHANGE) {
+            SAFE_LONG_RUN_STEP_MINUTES * weekNumber
+        } else 0
+        val longRun = minOf(
+            maxOf(plannedLongRun, measuredLongRun),
+            measuredLongRun + progressionAllowance,
+            MAX_LONG_RUN_MINUTES
+        )
         val recovery = (index + 1) % RECOVERY_WEEK_INTERVAL == 0
-        val adjustedLongRun = if (recovery) (longRun - RECOVERY_REDUCTION_MINUTES).coerceAtLeast(longRun / 2) else longRun
+        val responseRecovery = response in setOf(
+            TrainingResponse.RECOVER_AFTER_HIGH_LOAD,
+            TrainingResponse.HOLD_AFTER_SLOWING
+        ) && weekNumber == 1
+        val adjustedLongRun = if (recovery || responseRecovery) {
+            (longRun - RECOVERY_REDUCTION_MINUTES).coerceAtLeast(maxOf(MIN_LONG_RUN_MINUTES, longRun / 2))
+        } else longRun
         val recentAndConsistent = progress.runsLastFourWeeks >= MIN_RUNS_FOR_OPTIONAL &&
             progress.lastRunDate?.isAfter(today.minusDays(8)) == true &&
             progress.lastRunDate?.isAfter(today.minusDays(14)) == true
-        val addOptional = profile.optionalRun && recentAndConsistent && !recovery &&
+        val addOptional = profile.optionalRun && recentAndConsistent && !recovery && !responseRecovery &&
             adjustmentFor(progress, today, response) == PlanAdjustment.CONTINUE
-        val easy = easyRun(index, weekCount)
+        val easy = if (responseRecovery) recoveryRun() else easyRun(index, weekCount)
         val long = longRun(adjustedLongRun)
         val candidates = buildList {
-            add(easy)
-            add(long)
-            if (addOptional) add(optionalRun(index))
+            add(withPrescription(easy, workouts, today))
+            add(withPrescription(long, workouts, today))
+            if (addOptional) add(withPrescription(optionalRun(index), workouts, today))
         }
         return availabilityPlanner.buildWeek(
             profile = profile,
@@ -202,41 +237,83 @@ class TrainingPlanBuilder(
         )
     }
 
+    private fun withPrescription(run: PlannedRun, workouts: List<Workout>, today: LocalDate): PlannedRun =
+        if (run.trainingType == TrainingType.RECOVERY) run
+        else run.copy(prescription = prescriptionAnalyzer.analyze(workouts, today, run.totalMinutes))
+
     private fun easyRun(index: Int, weekCount: Int): PlannedRun {
         val secondRunMinutes = (30 + index).coerceAtMost(45).coerceAtMost(weekCount + 29)
         return PlannedRun(
             title = "Lockerer Lauf",
             optional = false,
             steps = listOf(
-                RunStep("Zügig gehen", WARM_UP_MINUTES),
-                RunStep("Locker laufen", 30),
-                RunStep("Locker gehen", 1),
-                RunStep("Locker laufen", secondRunMinutes),
-                RunStep("Locker gehen", COOL_DOWN_MINUTES)
-            )
+                RunStep("Zügig gehen", WARM_UP_MINUTES, 1, 2, "Bequem gehen"),
+                RunStep("Locker laufen", 30, 2, 4, "Ganze Sätze sprechen können"),
+                RunStep("Locker gehen", 1, 1, 2, "Erholen"),
+                RunStep("Locker laufen", secondRunMinutes, 2, 4, "Ganze Sätze sprechen können"),
+                RunStep("Locker gehen", COOL_DOWN_MINUTES, 1, 2, "Bequem ausgehen")
+            ),
+            trainingType = TrainingType.EASY
         )
     }
 
-    private fun longRun(minutes: Int) = PlannedRun(
-        title = "Langer, ruhiger Lauf",
+    private fun easyRun(minutes: Int): PlannedRun = PlannedRun(
+        title = "Lockerer Lauf",
         optional = false,
         steps = listOf(
-            RunStep("Zügig gehen", WARM_UP_MINUTES),
-            RunStep("Locker laufen", RUN_BLOCK_MINUTES),
-            RunStep("Locker gehen", 1),
-            RunStep("Locker laufen; weitere Gehpausen sind jederzeit möglich", minutes - RUN_BLOCK_MINUTES - WARM_UP_MINUTES - COOL_DOWN_MINUTES - 1),
-            RunStep("Locker gehen", COOL_DOWN_MINUTES)
+            RunStep("Zügig gehen", WARM_UP_MINUTES, 1, 2, "Bequem gehen"),
+            RunStep("Locker laufen", minutes, 2, 4, "Ganze Sätze sprechen können"),
+            RunStep("Locker gehen", COOL_DOWN_MINUTES, 1, 2, "Bequem ausgehen")
+        ),
+        trainingType = TrainingType.EASY
+    )
+
+    private fun recoveryRun(): PlannedRun = PlannedRun(
+        title = "Erholungslauf",
+        optional = false,
+        steps = listOf(
+            RunStep("Zügig gehen", WARM_UP_MINUTES, 1, 2, "Bequem gehen"),
+            RunStep("Sehr locker laufen oder gehen", RECOVERY_RUN_MINUTES, 1, 3, "Nur wenn es sich gut anfühlt"),
+            RunStep("Locker ausgehen", COOL_DOWN_MINUTES, 1, 2, "Bequem gehen")
+        ),
+        trainingType = TrainingType.RECOVERY,
+        prescription = RunPrescription(
+            effortMinimum = 1,
+            effortMaximum = 3,
+            effortCue = "Sehr leicht; jederzeit gehen oder abbrechen.",
+            rationale = "Verkürzte Einheit nach einer deutlich höheren Belastung als geplant."
         )
     )
+
+    private fun longRun(minutes: Int): PlannedRun {
+        val runningMinutes = (minutes - WARM_UP_MINUTES - COOL_DOWN_MINUTES).coerceAtLeast(0)
+        val steps = if (runningMinutes <= RUN_BLOCK_MINUTES) {
+            listOf(
+                RunStep("Zügig gehen", WARM_UP_MINUTES, 1, 2, "Bequem gehen"),
+                RunStep("Locker laufen; Gehpausen sind jederzeit möglich", runningMinutes, 2, 4, "Ganze Sätze sprechen können"),
+                RunStep("Locker gehen", COOL_DOWN_MINUTES, 1, 2, "Bequem ausgehen")
+            )
+        } else {
+            listOf(
+                RunStep("Zügig gehen", WARM_UP_MINUTES, 1, 2, "Bequem gehen"),
+                RunStep("Locker laufen", RUN_BLOCK_MINUTES, 2, 4, "Ganze Sätze sprechen können"),
+                RunStep("Locker gehen", 1, 1, 2, "Erholen"),
+                RunStep("Locker laufen; weitere Gehpausen sind jederzeit möglich", runningMinutes - RUN_BLOCK_MINUTES - 1, 2, 4, "Ganze Sätze sprechen können"),
+                RunStep("Locker gehen", COOL_DOWN_MINUTES, 1, 2, "Bequem ausgehen")
+            )
+        }
+        return PlannedRun("Langer, ruhiger Lauf", false, steps, trainingType = TrainingType.LONG_EASY)
+    }
 
     private fun optionalRun(index: Int) = PlannedRun(
         title = "Sehr lockerer Zusatzlauf",
         optional = true,
         steps = listOf(
-            RunStep("Zügig gehen", WARM_UP_MINUTES),
-            RunStep("Laufen und bei Bedarf gehen", (20 + index / 3).coerceAtMost(30)),
-            RunStep("Locker gehen", COOL_DOWN_MINUTES)
-        )
+            RunStep("Zügig gehen", WARM_UP_MINUTES, 1, 2, "Bequem gehen"),
+            RunStep("Laufen und bei Bedarf gehen", (20 + index / 3).coerceAtMost(30), 1, 3, "Sprechtempo; jederzeit gehen"),
+            RunStep("Locker gehen", COOL_DOWN_MINUTES, 1, 2, "Bequem ausgehen")
+        ),
+        trainingType = TrainingType.RECOVERY
     )
 
     private companion object {
@@ -247,10 +324,13 @@ class TrainingPlanBuilder(
         const val RECOVERY_WEEK_INTERVAL = 4
         const val MIN_RUNS_FOR_OPTIONAL = 6
         const val RECOVERY_REDUCTION_MINUTES = 15
+        const val SAFE_LONG_RUN_STEP_MINUTES = 10
+        const val MIN_LONG_RUN_MINUTES = 15
         const val MAX_LONG_RUN_MINUTES = 150
         const val MIN_MAINTENANCE_LONG_RUN = 45
         const val MAINTENANCE_CYCLE_WEEKS = 4
         const val RUN_BLOCK_MINUTES = 30
+        const val RECOVERY_RUN_MINUTES = 15
         val LONG_RUN_MINUTES = listOf(
             50, 55, 60, 50, 65, 70, 75, 60, 80, 85, 90, 70,
             100, 105, 110, 85, 120, 130, 140, 105, 120, 90, 60, 45

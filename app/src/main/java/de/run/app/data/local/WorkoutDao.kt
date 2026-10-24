@@ -32,16 +32,23 @@ interface WorkoutDao {
 
     @androidx.room.Transaction
     suspend fun upsertPreservingFeedback(workouts: List<WorkoutEntity>): List<WorkoutEntity> {
+        return saveImportPreservingFeedback(workouts).workouts
+    }
+
+    @androidx.room.Transaction
+    suspend fun saveImportPreservingFeedback(workouts: List<WorkoutEntity>): WorkoutSaveSummary {
         val saved = getAllForBackup().toMutableList()
         val result = mutableListOf<WorkoutEntity>()
+        var inserted = 0
+        var alreadyPresent = 0
         workouts.forEach { incoming ->
             val exactIndex = saved.indexOfFirst { it.sourceId == incoming.sourceId }
             val duplicateIndex = if (exactIndex >= 0) exactIndex else saved.indexOfFirst {
                 WorkoutDuplicateMatcher.isDuplicate(it, incoming)
             }
             val canonical = when {
-                duplicateIndex < 0 -> incoming
-                else -> WorkoutDuplicateMatcher.merge(saved[duplicateIndex], incoming)
+                duplicateIndex < 0 -> incoming.also { inserted += 1 }
+                else -> WorkoutDuplicateMatcher.merge(saved[duplicateIndex], incoming).also { alreadyPresent += 1 }
             }
             if (duplicateIndex < 0) saved += canonical else saved[duplicateIndex] = canonical
             result += canonical
@@ -50,6 +57,12 @@ interface WorkoutDao {
             saved.first { it.sourceId == value.sourceId }
         }
         upsertAll(canonicalResult.distinctBy(WorkoutEntity::sourceId))
-        return canonicalResult
+        return WorkoutSaveSummary(canonicalResult, inserted, alreadyPresent)
     }
 }
+
+data class WorkoutSaveSummary(
+    val workouts: List<WorkoutEntity>,
+    val insertedCount: Int,
+    val alreadyPresentCount: Int
+)

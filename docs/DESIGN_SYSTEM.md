@@ -1,6 +1,7 @@
 # Designsystem
 
 - Material 3 als Standard für Navigation, Schaltflächen, Karten, Listen, Dialoge und Formulare.
+- Auswahl-Dropdowns verwenden den gemeinsamen `AppDropdown`-Baustein: Menü und Auswahlfeld haben dieselbe verfügbare Breite, abgerundete Ecken, Theme-Farben und eine begrenzte Scrollhöhe.
 - Ruhige, gut lesbare Trainingsoberfläche mit klarer Informationshierarchie.
 - Einheitliche deutsche Begriffe und identische Darstellung für identische Aktionen.
 - Farben sind nie der einzige Informationsträger; Status zusätzlich mit Text und Symbol vermitteln.

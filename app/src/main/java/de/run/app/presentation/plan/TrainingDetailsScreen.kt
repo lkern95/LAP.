@@ -37,12 +37,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import de.run.app.R
 import de.run.app.domain.model.PlannedRun
+import de.run.app.domain.model.paceTarget
 
 @Composable
 internal fun TrainingDetailsScreen(
     run: PlannedRun?,
     onBack: () -> Unit,
-    onOpenPlan: () -> Unit
+    onOpenPlan: () -> Unit,
+    onStartGarminLive: () -> Unit = {}
 ) {
     Column(Modifier.fillMaxSize()) {
         DetailsHeader(onBack)
@@ -58,9 +60,15 @@ internal fun TrainingDetailsScreen(
                 WorkoutSummary(run)
                 Text(run.description(), style = MaterialTheme.typography.bodySmall)
                 WorkoutFacts(run)
+                Text(run.prescription.rationale, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(
+                    "RPE-Skala: 1 = sehr leicht, 10 = maximal.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
                 RunTimeline(run)
             }
-            StartOnGarminAction(showStartGuide) { showStartGuide = true }
+            StartOnGarminAction(showStartGuide, onStartGarminLive) { showStartGuide = true }
         }
     }
 }
@@ -114,9 +122,11 @@ private fun WorkoutSummary(run: PlannedRun) {
 @Composable
 private fun WorkoutFacts(run: PlannedRun) {
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        WorkoutFact("Strecke", "Nicht vorgegeben", Modifier.weight(1f))
         WorkoutFact("Dauer", "${run.totalMinutes} Min.", Modifier.weight(1f))
-        WorkoutFact("Tempo", "Locker", Modifier.weight(1f))
+        WorkoutFact("Pace", run.prescription.paceRange?.let {
+            "${formatPace(it.fasterSecondsPerKm)}–${formatPace(it.slowerSecondsPerKm)} min/km"
+        } ?: "Noch nicht belastbar", Modifier.weight(1f))
+        WorkoutFact("Puls", run.prescription.heartRateRangeBpm?.let { "${it.first}–${it.last} bpm" } ?: "Keine persönliche Zone", Modifier.weight(1f))
     }
 }
 
@@ -152,7 +162,22 @@ private fun RunTimeline(run: PlannedRun) {
                         Spacer(Modifier.padding(top = 4.dp).size(width = 2.dp, height = 34.dp).background(MaterialTheme.colorScheme.tertiary.copy(alpha = .45f)))
                     }
                 }
-                Text(step.name, Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Text(step.name, style = MaterialTheme.typography.bodyMedium)
+                    val pace = step.paceTarget(run.prescription)?.let {
+                        "Pace ${formatPace(it.fasterSecondsPerKm)}–${formatPace(it.slowerSecondsPerKm)} min/km"
+                    }
+                    val effort = if (step.effortMinimum != null && step.effortMaximum != null) {
+                        "RPE ${step.effortMinimum}–${step.effortMaximum} von 10"
+                    } else null
+                    listOfNotNull(step.effortCue, effort, pace).takeIf { it.isNotEmpty() }?.let { details ->
+                        Text(
+                            details.joinToString(" · "),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
                 Text("${step.minutes} Min.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
@@ -160,7 +185,11 @@ private fun RunTimeline(run: PlannedRun) {
 }
 
 @Composable
-private fun StartOnGarminAction(showGuide: Boolean, onStartPressed: () -> Unit) {
+private fun StartOnGarminAction(
+    showGuide: Boolean,
+    onStartGarminLive: () -> Unit,
+    onGuidePressed: () -> Unit
+) {
     Column(
         Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -176,19 +205,20 @@ private fun StartOnGarminAction(showGuide: Boolean, onStartPressed: () -> Unit) 
                     contentDescription = null,
                     modifier = Modifier.size(24.dp)
                 )
-                Text("Der Lauf startet auf deiner Garmin-Uhr.", style = MaterialTheme.typography.bodySmall)
+                Text("Starte die Aufzeichnung auf deiner Garmin-Uhr. LAP begleitet den Lauf hier.", style = MaterialTheme.typography.bodySmall)
             }
         }
         Button(
-            onClick = onStartPressed,
+            onClick = onStartGarminLive,
             modifier = Modifier.fillMaxWidth().height(52.dp).semantics {
-                contentDescription = "Anleitung zum Start auf der Garmin-Uhr anzeigen"
+                contentDescription = "Live-Begleitung mit Garmin-Uhr starten"
             },
             shape = CircleShape
-        ) { Text("Auf der Uhr starten  →") }
+        ) { Text("Live-Begleitung starten") }
+        androidx.compose.material3.TextButton(onClick = onGuidePressed) { Text("So startest du den Lauf auf der Uhr") }
         if (showGuide) {
             Text(
-                "Wähle auf der Uhr Aktivitäten → Laufen. Nach der Synchronisierung findest du den Lauf hier.",
+                "LAP startet keine Aufzeichnung auf der Uhr. Wähle dort Aktivitäten → Laufen und öffne LAP Live als Datenseite.",
                 Modifier.padding(horizontal = 4.dp),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -209,8 +239,7 @@ private fun MissingTrainingDetails(onOpenPlan: () -> Unit) {
     }
 }
 
-private fun PlannedRun.description(): String = when {
-    title.contains("langer", ignoreCase = true) -> "Laufe ruhig und teile dir deine Kräfte ein. Gehpausen sind jederzeit möglich."
-    title.contains("zusatz", ignoreCase = true) -> "Eine kurze, sehr lockere Einheit. Gehpausen sind jederzeit möglich."
-    else -> "Laufe locker in deinem Gesprächstempo. Gehpausen sind jederzeit möglich."
-}
+private fun PlannedRun.description(): String =
+    "${prescription.effortCue} Gehpausen sind jederzeit möglich."
+
+private fun formatPace(seconds: Int): String = "%d:%02d".format(seconds / 60, seconds % 60)

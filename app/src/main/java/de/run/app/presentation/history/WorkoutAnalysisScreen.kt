@@ -48,7 +48,10 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import de.run.app.R
+import de.run.app.presentation.components.ExpandableSection
+import de.run.app.presentation.components.PersonalTrainingFeedbackCard
 import de.run.app.domain.model.Workout
+import de.run.app.domain.TrainingFeedback
 import de.run.app.domain.model.RunningSymptomFeedback
 import java.time.Instant
 import java.time.ZoneId
@@ -62,6 +65,7 @@ fun WorkoutAnalysisScreen(
     onBack: () -> Unit,
     isSavingFeedback: Boolean = false,
     feedbackSaveFailed: Boolean = false,
+    trainingFeedback: TrainingFeedback? = null,
     onSaveFeedback: (Int?, RunningSymptomFeedback?) -> Unit = { _, _ -> },
     onSkipFeedback: () -> Unit = {}
 ) {
@@ -77,7 +81,8 @@ fun WorkoutAnalysisScreen(
             verticalArrangement = Arrangement.spacedBy(12.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            item { WorkoutCelebration(workout) }
+            if (trainingFeedback != null) item { PersonalTrainingFeedbackCard(trainingFeedback) }
+            item { Text("Deine Laufwerte", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold) }
             item { WorkoutMetricGrid(workout) }
             item { SyncConfirmation(workout) }
             item { SyncDetails(workout) }
@@ -187,14 +192,14 @@ private fun WorkoutCelebration(workout: Workout) {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(4.dp)
     ) {
-        Text("Lauf abgeschlossen", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
+        Text("Deine Laufanalyse", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
         Image(
             painter = painterResource(R.drawable.run_status_feedback_success),
             contentDescription = null,
             modifier = Modifier.size(178.dp)
         )
         Text(
-            "Stark gemacht!",
+            "Lauf ausgewertet",
             style = MaterialTheme.typography.headlineLarge.copy(fontSize = 34.sp),
             fontWeight = FontWeight.Bold,
             textAlign = TextAlign.Center
@@ -290,10 +295,11 @@ private fun WorkoutMetric(
 
 @Composable
 private fun SyncConfirmation(workout: Workout) {
-    val message = if (workout.sourceName.contains("garmin", ignoreCase = true)) {
-        "Mit Garmin Connect synchronisiert"
-    } else {
-        "Lauf synchronisiert"
+    val message = when (workout.sourceName) {
+        "Garmin Connect" -> "Mit Garmin Connect synchronisiert"
+        "Garmin-Backup" -> "Aus Garmin-Backup importiert"
+        "FIT-Datei" -> "FIT-Aktivität importiert"
+        else -> "Lauf gespeichert"
     }
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -313,37 +319,24 @@ private fun SyncConfirmation(workout: Workout) {
 
 @Composable
 private fun SyncDetails(workout: Workout) {
-    var expanded by remember { mutableStateOf(false) }
-    Column(Modifier.fillMaxWidth().animateContentSize()) {
-        Row(
-            modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).clickable { expanded = !expanded }
-                .semantics {
-                    contentDescription = if (expanded) "Details zur Synchronisierung ausblenden"
-                    else "Details zur Synchronisierung anzeigen"
-                    role = Role.Button
-                }
-                .padding(horizontal = 10.dp, vertical = 14.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text("Details zur Synchronisierung", Modifier.weight(1f), color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Text(if (expanded) "⌃" else "⌄", style = MaterialTheme.typography.titleLarge)
-        }
-        AnimatedVisibility(expanded) {
-            Column(
-                Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 6.dp),
-                verticalArrangement = Arrangement.spacedBy(6.dp)
-            ) {
-                Text(
-                    if (workout.sourceName.contains("garmin", ignoreCase = true)) "Quelle: Garmin Connect" else "Quelle: verbundene Lauf-App",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Text(
-                    "Eine Streckenkarte wurde für diesen Lauf nicht mitgesendet.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
+    var expanded by rememberSaveable { mutableStateOf(false) }
+    ExpandableSection(
+        title = "Details zur Synchronisierung",
+        expanded = expanded,
+        onToggle = { expanded = !expanded },
+        modifier = Modifier.padding(horizontal = 10.dp)
+    ) {
+        Column(Modifier.fillMaxWidth().padding(vertical = 6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Text(
+                if (workout.sourceName.contains("garmin", ignoreCase = true)) "Quelle: Garmin Connect" else "Quelle: verbundene Lauf-App",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Text(
+                "Eine Streckenkarte wurde für diesen Lauf nicht mitgesendet.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
     }
 }

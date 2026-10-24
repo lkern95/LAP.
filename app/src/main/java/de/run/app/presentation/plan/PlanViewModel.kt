@@ -2,6 +2,8 @@ package de.run.app.presentation.plan
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import de.run.app.domain.HalfMarathonForecast
+import de.run.app.domain.HalfMarathonForecastAnalyzer
 import de.run.app.domain.TrainingGoalCandidateSelector
 import de.run.app.domain.TrainingProgressAnalyzer
 import de.run.app.domain.TrainingDecisionSnapshotFactory
@@ -14,6 +16,7 @@ import de.run.app.domain.model.TrainingPlan
 import de.run.app.domain.model.TrainingPlanMode
 import de.run.app.domain.model.TrainingProfile
 import de.run.app.domain.model.TrainingProgress
+import de.run.app.domain.model.ScheduledRun
 import de.run.app.domain.model.Workout
 import de.run.app.domain.repository.TrainingGoalRepository
 import de.run.app.domain.repository.TrainingGoalHistoryUnavailableException
@@ -21,6 +24,9 @@ import de.run.app.domain.repository.TrainingProfileRepository
 import de.run.app.domain.repository.WorkoutRepository
 import de.run.app.domain.repository.TrainingDecisionRepository
 import java.time.LocalDate
+import java.time.Duration
+import java.time.Instant
+import java.time.ZoneId
 import java.util.UUID
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -30,6 +36,11 @@ import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flow
+
+private val HALF_MARATHON_DISTANCE_RANGE = 20_000..22_000
 
 data class PlanUiState(
     val isLoading: Boolean = true,
@@ -44,11 +55,16 @@ data class PlanUiState(
     val isCreatingGoal: Boolean = false,
     val editingStep: Int = 0,
     val progress: TrainingProgress? = null,
+    val completedPlannedRunCount: Int = 0,
+    val nextScheduledRun: ScheduledRun? = null,
+    val halfMarathonForecast: HalfMarathonForecast? = null,
     val hasLoadError: Boolean = false,
     val hasGoalHistoryError: Boolean = false,
     val pendingCompetitionCandidate: Workout? = null,
     val dismissedCompetitionWorkoutId: String? = null,
-    val dismissedGoalAchievementId: String? = null
+    val dismissedGoalAchievementId: String? = null,
+    val goalPaceSecondsPerKilometer: Long? = null,
+    val goalPaceUsesForecast: Boolean = false
 )
 
 class PlanViewModel(
@@ -62,6 +78,9 @@ class PlanViewModel(
     private val decisionFactory = TrainingDecisionSnapshotFactory()
     private val runDurationAdjuster = TrainingRunDurationAdjuster()
     private val candidateSelector = TrainingGoalCandidateSelector()
+    private val completionAnalyzer = de.run.app.domain.WorkoutPlanCompletionAnalyzer()
+    private val upcomingRunSelector = de.run.app.domain.UpcomingScheduledRunSelector()
+    private val forecastAnalyzer = HalfMarathonForecastAnalyzer()
     private val mutableState = MutableStateFlow(PlanUiState())
     val state: StateFlow<PlanUiState> = mutableState.asStateFlow()
 
@@ -71,20 +90,37 @@ class PlanViewModel(
 
     private fun observePlan() {
         viewModelScope.launch {
-            combine(profiles.observe(), goals.observeHistory(), workouts.observeRecent()) { profile, history, records ->
-                Triple(profile, history, records)
+            combine(profiles.observe(), goals.observeHistory(), workouts.observeRecent(), observeLocalDate()) { profile, history, records, today ->
+                PlanInputs(profile, history, records, today)
             }.catch { error ->
                 mutableState.value = mutableState.value.copy(
                     isLoading = false,
                     hasLoadError = true,
                     hasGoalHistoryError = error is TrainingGoalHistoryUnavailableException
                 )
-            }.collectLatest { (profile, history, records) ->
+            }.collectLatest { (profile, history, records, today) ->
                 val activeGoal = history.firstOrNull { it.status == TrainingGoalStatus.ACTIVE }
                 val lastCompleted = history.firstOrNull { it.status == TrainingGoalStatus.COMPLETED }
                 val planGoal = activeGoal ?: lastCompleted
-                val today = LocalDate.now()
                 val plan = profile?.let { planBuilder.build(it, planGoal, today, records) }
+                val progress = profile?.let { progressAnalyzer.analyze(records, today) }
+                val currentWeek = plan?.weeks?.firstOrNull()
+                val completedPlannedRuns = if (profile != null && currentWeek != null) {
+                    completionAnalyzer.completedRuns(records, currentWeek, profile, activeGoal)
+                } else 0
+                val completedMatches = records.mapNotNull(Workout::planMatch)
+                val nextScheduledRun = plan?.let { upcomingRunSelector.select(it, today, completedMatches) }
+                val nextRunTitle = nextScheduledRun?.run?.title ?: nextPlannedRunTitle(plan, completedPlannedRuns)
+                val forecast = forecastAnalyzer.analyze(planGoal, records, today, nextPlannedRunTitle = nextRunTitle)
+                val explicitGoalTime = planGoal?.targetTimeMinutes?.takeIf { it > 0 }
+                val forecastMinutes = forecast?.takeIf {
+                    it.confidence == de.run.app.domain.ForecastConfidence.SUPPORTED
+                }?.estimatedMinutes?.let { (it.first + it.last) / 2.0 }
+                val paceReferenceMinutes = explicitGoalTime?.toDouble()
+                    ?: forecastMinutes.takeIf { planGoal?.raceDistanceMeters in HALF_MARATHON_DISTANCE_RANGE }
+                val goalPace = planGoal?.raceDistanceMeters?.takeIf { it > 0 }?.let { distance ->
+                    paceReferenceMinutes?.let { (it * 60_000.0 / distance).toLong() }
+                }
                 val candidate = candidateSelector.select(activeGoal, records)
                 if (profile != null && plan != null) {
                     try {
@@ -107,8 +143,14 @@ class PlanViewModel(
                     isCreatingGoal = mutableState.value.isCreatingGoal,
                     dismissedCompetitionWorkoutId = mutableState.value.dismissedCompetitionWorkoutId,
                     dismissedGoalAchievementId = mutableState.value.dismissedGoalAchievementId,
-                    progress = profile?.let { progressAnalyzer.analyze(records, today) },
-                    pendingCompetitionCandidate = candidate
+                    progress = progress,
+                    completedPlannedRunCount = completedPlannedRuns,
+                    nextScheduledRun = nextScheduledRun,
+                    halfMarathonForecast = forecast,
+                    pendingCompetitionCandidate = candidate,
+                    goalPaceSecondsPerKilometer = goalPace,
+                    goalPaceUsesForecast = explicitGoalTime == null && forecastMinutes != null &&
+                        planGoal?.raceDistanceMeters in HALF_MARATHON_DISTANCE_RANGE
                 )
                 if (candidate != null && activeGoal?.pendingCompetitionWorkoutId == null) {
                     goals.update(activeGoal!!.copy(pendingCompetitionWorkoutId = candidate.sourceId))
@@ -231,6 +273,31 @@ class PlanViewModel(
         }
     }
 
+    private fun nextPlannedRunTitle(plan: TrainingPlan?, completedRuns: Int): String? {
+        val week = plan?.weeks?.firstOrNull() ?: return null
+        if (completedRuns >= week.requiredRunCount) return week.runs.firstOrNull(PlannedRun::optional)?.title
+        val next = week.scheduledRuns.minByOrNull { it.scheduledDate?.toEpochDay() ?: it.day.value.toLong() }?.run
+            ?: week.runs.firstOrNull { !it.optional }
+        return next?.title
+    }
+
+    private fun observeLocalDate(): Flow<LocalDate> = flow {
+        while (true) {
+            val today = LocalDate.now()
+            emit(today)
+            val nextDay = today.plusDays(1).atStartOfDay(ZoneId.systemDefault()).toInstant()
+            val waitMillis = Duration.between(Instant.now(), nextDay).toMillis().coerceAtLeast(1_000L)
+            delay(waitMillis)
+        }
+    }
+
     fun runForAvailableTime(run: PlannedRun, minutes: Int): PlannedRun? =
         runDurationAdjuster.fitToAvailableTime(run, minutes)
 }
+
+private data class PlanInputs(
+    val profile: TrainingProfile?,
+    val history: List<TrainingGoal>,
+    val workouts: List<Workout>,
+    val today: LocalDate
+)

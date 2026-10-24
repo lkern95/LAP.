@@ -2,8 +2,14 @@
   "sleepMinutes": 468,
   "restingHeartRateBpm": 56,
   "workouts": [
-    { "daysAgo": 1, "durationMinutes": 38, "distanceMeters": 5200, "averageHeartRateBpm": 142 },
-    { "daysAgo": 3, "durationMinutes": 44, "distanceMeters": 6100, "averageHeartRateBpm": 146 },
-    { "daysAgo": 4, "durationMinutes": 76, "distanceMeters": 9800, "averageHeartRateBpm": 149 }
+    { "weekDayOffset": 0, "durationMinutes": 38, "distanceMeters": 5200, "averageHeartRateBpm": 142 },
+    { "weekDayOffset": 1, "durationMinutes": 44, "distanceMeters": 6100, "averageHeartRateBpm": 146 },
+    { "weekDayOffset": 2, "durationMinutes": 76, "distanceMeters": 9800, "averageHeartRateBpm": 149 },
+    { "weekDayOffset": -7, "durationMinutes": 35, "distanceMeters": 4700, "averageHeartRateBpm": 143 },
+    { "weekDayOffset": -6, "durationMinutes": 43, "distanceMeters": 5900, "averageHeartRateBpm": 145 },
+    { "weekDayOffset": -5, "durationMinutes": 68, "distanceMeters": 8600, "averageHeartRateBpm": 148 },
+    { "weekDayOffset": -14, "durationMinutes": 33, "distanceMeters": 4500, "averageHeartRateBpm": 141 },
+    { "weekDayOffset": -13, "durationMinutes": 42, "distanceMeters": 5800, "averageHeartRateBpm": 144 },
+    { "weekDayOffset": -12, "durationMinutes": 64, "distanceMeters": 8100, "averageHeartRateBpm": 147 }
   ]
 }

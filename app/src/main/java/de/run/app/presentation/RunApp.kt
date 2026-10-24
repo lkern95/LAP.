@@ -54,10 +54,14 @@ import de.run.app.presentation.history.WorkoutAnalysisScreen
 import de.run.app.presentation.plan.PlanScreen
 import de.run.app.presentation.plan.PlanViewModel
 import de.run.app.presentation.plan.TrainingDetailsScreen
+import de.run.app.presentation.plan.LiveRunCoachScreen
+import de.run.app.data.audio.LiveCoachForegroundService
+import de.run.app.domain.LiveRunTargets
 import de.run.app.presentation.settings.AppearanceScreen
 import de.run.app.presentation.settings.AppearanceViewModel
 import de.run.app.presentation.settings.AppBackupViewModel
 import de.run.app.presentation.settings.GarminScreen
+import de.run.app.presentation.settings.GarminConnectViewModel
 import de.run.app.presentation.theme.RunTheme
 import de.run.app.presentation.strength.StrengthScreen
 import de.run.app.presentation.strength.StrengthViewModel
@@ -70,7 +74,7 @@ private enum class Destination(val route: String, val label: String, val iconRes
     TODAY("today", "Heute", R.drawable.run_navigation_home),
     PLAN("plan", "Plan", R.drawable.run_navigation_plan),
     PROGRESS("progress", "Fortschritt", R.drawable.run_navigation_progress),
-    PROFILE("profile", "Ich", R.drawable.run_navigation_profile)
+    PROFILE("profile", "Profil", R.drawable.run_navigation_profile)
 }
 
 @Composable
@@ -78,6 +82,7 @@ fun RunApp(
     planViewModel: PlanViewModel,
     workoutHistoryViewModel: WorkoutHistoryViewModel,
     appearanceViewModel: AppearanceViewModel,
+    garminConnectViewModel: GarminConnectViewModel,
     backupViewModel: AppBackupViewModel,
     strengthViewModel: StrengthViewModel,
     readinessViewModel: ReadinessViewModel,
@@ -88,6 +93,7 @@ fun RunApp(
     val planState by planViewModel.state.collectAsState()
     val workoutHistoryState by workoutHistoryViewModel.state.collectAsState()
     val activity = LocalContext.current.findActivity()
+    val context = LocalContext.current
     val debugDemoMode = (LocalContext.current.applicationContext as? de.run.app.RunApplication)
         ?.container?.debugDemoMode
     val isDemo by (debugDemoMode?.enabled ?: kotlinx.coroutines.flow.MutableStateFlow(false)).collectAsState()
@@ -109,6 +115,7 @@ fun RunApp(
             }
         }
         var showWelcome by rememberSaveable { mutableStateOf(true) }
+        var isStrengthDetail by rememberSaveable { mutableStateOf(false) }
         val navController = rememberNavController()
         if (showWelcome) {
             WelcomeScreen(onContinue = { showWelcome = false })
@@ -150,6 +157,7 @@ fun RunApp(
             Scaffold(
             bottomBar = {
                 if (currentRoute != READINESS_ROUTE && currentRoute != WORKOUT_ANALYSIS_ROUTE &&
+                    !(currentRoute == "strength" && isStrengthDetail) &&
                     !(planState.profile == null && currentRoute == Destination.PLAN.route)
                 ) {
                 NavigationBar(
@@ -243,7 +251,6 @@ fun RunApp(
                             if (runIndex >= 0) navController.navigate("$TRAINING_DETAILS_ROUTE/$weekStart/$runIndex/plan")
                         },
                         onConnectGarmin = requestWorkoutAccess,
-                        onSetupHealthSync = { activity?.openHealthSyncSetup() },
                         onOnboardingComplete = {
                             navController.navigate(Destination.TODAY.route) {
                                 popUpTo(Destination.PLAN.route) { inclusive = true }
@@ -252,7 +259,13 @@ fun RunApp(
                         }
                     )
                 }
-                composable("strength") { StrengthScreen(strengthViewModel) }
+                composable("strength") {
+                    StrengthScreen(
+                        viewModel = strengthViewModel,
+                        onBack = { navController.popBackStack() },
+                        onDetailChanged = { isStrengthDetail = it }
+                    )
+                }
                 composable(
                     route = "$TRAINING_DETAILS_ROUTE/{weekStart}/{runIndex}/{source}?availableMinutes={availableMinutes}",
                     arguments = listOf(
@@ -275,8 +288,46 @@ fun RunApp(
                     TrainingDetailsScreen(
                         run = selectedRun,
                         onBack = { navController.popBackStack() },
-                        onOpenPlan = { navController.navigate(Destination.PLAN.route) { launchSingleTop = true } }
+                        onOpenPlan = { navController.navigate(Destination.PLAN.route) { launchSingleTop = true } },
+                        onStartGarminLive = {
+                            if (weekStart != null && runIndex >= 0) {
+                                navController.navigate(
+                                    "$LIVE_COACH_ROUTE/$weekStart/$runIndex?availableMinutes=$availableMinutes&startGarminLive=true"
+                                )
+                            }
+                        }
                     )
+                }
+                composable(
+                    route = "$LIVE_COACH_ROUTE/{weekStart}/{runIndex}?availableMinutes={availableMinutes}&startGarminLive={startGarminLive}",
+                    arguments = listOf(
+                        navArgument("weekStart") { type = NavType.StringType },
+                        navArgument("runIndex") { type = NavType.IntType },
+                        navArgument("availableMinutes") { type = NavType.IntType; defaultValue = 0 },
+                        navArgument("startGarminLive") { type = NavType.BoolType; defaultValue = false }
+                    )
+                ) { liveEntry ->
+                    val weekStart = liveEntry.arguments?.getString("weekStart")
+                        ?.let { runCatching { java.time.LocalDate.parse(it) }.getOrNull() }
+                    val runIndex = liveEntry.arguments?.getInt("runIndex") ?: -1
+                    val availableMinutes = liveEntry.arguments?.getInt("availableMinutes") ?: 0
+                    val startGarminLive = liveEntry.arguments?.getBoolean("startGarminLive") ?: false
+                    val plannedRun = weekStart?.let { date ->
+                        planState.plan?.weeks?.firstOrNull { it.startsOn == date }?.runs?.getOrNull(runIndex)
+                    }
+                    val runForDisplay = plannedRun?.let { run ->
+                        if (availableMinutes > 0) planViewModel.runForAvailableTime(run, availableMinutes) ?: run else run
+                    }
+                    if (runForDisplay != null) {
+                        LiveRunCoachScreen(
+                            run = runForDisplay,
+                            onBack = { navController.popBackStack() },
+                            startGarminOnOpen = startGarminLive,
+                            onStartGarmin = {
+                                LiveCoachForegroundService.startGarmin(context, LiveRunTargets.from(runForDisplay))
+                            }
+                        )
+                    }
                 }
                 composable(READINESS_ROUTE) {
                     ReadinessScreen(
@@ -288,17 +339,27 @@ fun RunApp(
                             readinessViewModel.refresh()
                             workoutHistoryViewModel.refresh()
                         },
-                        onBack = { navController.popBackStack() }
+                        onBack = { navController.popBackStack() },
+                        trainingFeedback = workoutHistoryState.trainingFeedback
                     )
                 }
                 composable(Destination.PROGRESS.route) {
-                    WorkoutHistoryScreen(workoutHistoryViewModel, requestWorkoutAccess)
+                    WorkoutHistoryScreen(
+                        workoutHistoryViewModel,
+                        requestWorkoutAccess,
+                        goalDistanceMeters = planState.goal?.raceDistanceMeters,
+                        goalTimeMinutes = planState.goal?.targetTimeMinutes,
+                        goalPaceSecondsPerKilometer = planState.goalPaceSecondsPerKilometer,
+                        goalPaceUsesForecast = planState.goalPaceUsesForecast,
+                        halfMarathonForecast = planState.halfMarathonForecast
+                    )
                 }
                 composable(WORKOUT_ANALYSIS_ROUTE) {
                     WorkoutAnalysisScreen(
                         workout = workoutHistoryState.newlySyncedWorkout,
                         isSavingFeedback = workoutHistoryState.isSavingFeedback,
                         feedbackSaveFailed = workoutHistoryState.feedbackSaveFailed,
+                        trainingFeedback = workoutHistoryState.trainingFeedback,
                         onSaveFeedback = workoutHistoryViewModel::saveFeedback,
                         onSkipFeedback = workoutHistoryViewModel::skipFeedback,
                         onContinue = {
@@ -315,19 +376,37 @@ fun RunApp(
                     )
                 }
                 composable(Destination.PROFILE.route) {
-                    AppearanceScreen(appearanceViewModel, backupViewModel) {
-                        navController.navigate(GARMIN_ROUTE) { launchSingleTop = true }
-                    }
+                    AppearanceScreen(
+                        viewModel = appearanceViewModel,
+                        backupViewModel = backupViewModel,
+                        strengthViewModel = strengthViewModel,
+                        onOpenGarmin = { navController.navigate(GARMIN_ROUTE) { launchSingleTop = true } },
+                        onEditTrainingGoal = {
+                            planViewModel.editGoal()
+                            navController.navigate(Destination.PLAN.route) { launchSingleTop = true }
+                        },
+                        onEditAvailability = {
+                            planViewModel.editAvailability()
+                            navController.navigate(Destination.PLAN.route) { launchSingleTop = true }
+                        },
+                        onOpenStrengthTraining = { navController.navigate("strength") },
+                        hasCompetitionToClassify = planState.pendingCompetitionCandidate != null,
+                        onClassifyCompetition = {
+                            planViewModel.showCompetitionQuestion()
+                            navController.navigate(Destination.PLAN.route) { launchSingleTop = true }
+                        }
+                    )
                 }
                 composable(GARMIN_ROUTE) {
                     GarminScreen(
                         workoutHistoryViewModel = workoutHistoryViewModel,
+                        garminConnectViewModel = garminConnectViewModel,
                         isDemo = isDemo,
                         planViewModel = planViewModel,
                         onOpenProgress = { navController.navigate(Destination.PROGRESS.route) },
+                        onOpenHealthData = { navController.navigate(READINESS_ROUTE) { launchSingleTop = true } },
                         onOpenTrainingPlan = { navController.navigate(Destination.PLAN.route) },
                         onRequestWorkoutAccess = requestWorkoutAccess,
-                        onSetupHealthSync = { activity?.openHealthSyncSetup() },
                         onInstallGarminConnect = { activity?.openStoreListing(GARMIN_CONNECT_PACKAGE) },
                         onInstallHealthConnect = { activity?.openHealthConnectSettings() },
                         onBack = { navController.popBackStack() }
@@ -335,7 +414,7 @@ fun RunApp(
                 }
             }
             }
-            BackHandler(enabled = navController.previousBackStackEntry != null) {
+            BackHandler(enabled = navController.previousBackStackEntry != null && !(currentRoute == "strength" && isStrengthDetail)) {
                 if (currentRoute == WORKOUT_ANALYSIS_ROUTE) {
                     workoutHistoryViewModel.dismissNewlySyncedWorkout()
                 }
@@ -348,8 +427,8 @@ fun RunApp(
 private const val GARMIN_ROUTE = "garmin"
 private const val READINESS_ROUTE = "readiness"
 private const val TRAINING_DETAILS_ROUTE = "training-details"
+private const val LIVE_COACH_ROUTE = "live-coach"
 private const val WORKOUT_ANALYSIS_ROUTE = "workout-analysis"
-private const val HEALTH_SYNC_PACKAGE = "nl.appyhapps.healthsync"
 private const val GARMIN_CONNECT_PACKAGE = "com.garmin.android.apps.connectmobile"
 private const val HEALTH_CONNECT_PACKAGE = "com.google.android.apps.healthdata"
 
@@ -368,10 +447,6 @@ private tailrec fun Context.findActivity(): Activity? = when (this) {
     is Activity -> this
     is ContextWrapper -> baseContext.findActivity()
     else -> null
-}
-
-private fun Activity.openHealthSyncSetup() {
-    openStoreListing(HEALTH_SYNC_PACKAGE)
 }
 
 private fun Activity.openHealthConnectSettings() {

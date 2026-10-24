@@ -25,6 +25,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -34,27 +35,47 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.platform.LocalContext
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import java.io.ByteArrayOutputStream
+import de.run.app.presentation.strength.StrengthViewModel
 import de.run.app.domain.model.AppTheme
 import de.run.app.R
+import de.run.app.presentation.components.ExpandableSection
 
 @Composable
 fun AppearanceScreen(
     viewModel: AppearanceViewModel,
     backupViewModel: AppBackupViewModel,
-    onOpenProgress: () -> Unit
+    strengthViewModel: StrengthViewModel,
+    onOpenGarmin: () -> Unit,
+    onEditTrainingGoal: () -> Unit,
+    onEditAvailability: () -> Unit,
+    onOpenStrengthTraining: () -> Unit,
+    hasCompetitionToClassify: Boolean,
+    onClassifyCompetition: () -> Unit
 ) {
     val state by viewModel.state.collectAsState()
     val backupState by backupViewModel.state.collectAsState()
+    val strengthState by strengthViewModel.state.collectAsState()
+    val context = LocalContext.current
+    val scope = androidx.compose.runtime.rememberCoroutineScope()
     var passwordDialog by remember { mutableStateOf(false) }
     var password by remember { mutableStateOf("") }
     var restoreUri by remember { mutableStateOf<String?>(null) }
     var pendingPassword by remember { mutableStateOf<CharArray?>(null) }
     var confirmRestore by remember { mutableStateOf(false) }
+    var trainingGoalsExpanded by rememberSaveable { mutableStateOf(false) }
+    var themeExpanded by rememberSaveable { mutableStateOf(false) }
+    var backupExpanded by rememberSaveable { mutableStateOf(false) }
     val createDocument = rememberLauncherForActivityResult(
         ActivityResultContracts.CreateDocument("application/vnd.lap.sicherung")
     ) { uri ->
@@ -67,13 +88,33 @@ fun AppearanceScreen(
         restoreUri = uri?.toString()
         if (uri != null) passwordDialog = true
     }
+    val openCatalog = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri != null) scope.launch {
+            val json = withContext(Dispatchers.IO) {
+                runCatching {
+                    context.contentResolver.openInputStream(uri)?.use { input ->
+                        val output = ByteArrayOutputStream()
+                        val buffer = ByteArray(8_192)
+                        while (true) {
+                            val count = input.read(buffer)
+                            if (count < 0) break
+                            if (output.size() + count > de.run.app.data.strength.StrengthCatalogJsonParser.MAX_CATALOG_BYTES) error("oversize")
+                            output.write(buffer, 0, count)
+                        }
+                        output.toByteArray().toString(Charsets.UTF_8)
+                    } ?: error("unreadable")
+                }.getOrNull()
+            }
+            strengthViewModel.importCatalog(json ?: "{}")
+        }
+    }
     Column(
         Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(24.dp),
         verticalArrangement = Arrangement.spacedBy(20.dp)
     ) {
-        Text("Ich", style = MaterialTheme.typography.headlineMedium)
-        Text("Deine App", style = MaterialTheme.typography.titleLarge)
-        Card(Modifier.fillMaxWidth().clickable(onClick = onOpenProgress)) {
+        Text("Profil", style = MaterialTheme.typography.headlineMedium)
+        Text("VERBINDUNGEN", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Card(Modifier.fillMaxWidth().clickable(onClick = onOpenGarmin)) {
             Row(
                 Modifier.padding(18.dp),
                 horizontalArrangement = Arrangement.spacedBy(14.dp),
@@ -86,40 +127,68 @@ fun AppearanceScreen(
                     contentScale = ContentScale.Fit
                 )
                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Text("Läufe und Garmin Connect", style = MaterialTheme.typography.titleMedium)
-                    Text("Synchronisierte Läufe findest du unter Fortschritt.")
+                    Text("Garmin Connect", style = MaterialTheme.typography.titleMedium)
+                    Text("Läufe und Gesundheitsdaten ansehen und verbinden.")
                 }
             }
         }
-        Text("Farbstil", style = MaterialTheme.typography.titleLarge)
-        AppTheme.entries.forEach { theme ->
-            ThemeOption(
-                theme = theme,
-                selected = state.theme == theme,
-                onSelect = { viewModel.select(theme) }
-            )
+        ExpandableSection("TRAINING", trainingGoalsExpanded, { trainingGoalsExpanded = !trainingGoalsExpanded }) {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Button(onClick = onEditTrainingGoal, modifier = Modifier.fillMaxWidth()) { Text("Ziel bearbeiten") }
+                OutlinedButton(onClick = onEditAvailability, modifier = Modifier.fillMaxWidth()) { Text("Verfügbarkeit ändern") }
+                OutlinedButton(onClick = onOpenStrengthTraining, modifier = Modifier.fillMaxWidth()) {
+                    Text("Kraftübungen ansehen")
+                }
+                if (hasCompetitionToClassify) {
+                    OutlinedButton(onClick = onClassifyCompetition, modifier = Modifier.fillMaxWidth()) {
+                        Text("Wettkampfabschluss einordnen")
+                    }
+                }
+                Text("Neue lokale Übungskataloge lassen sich hier ergänzen.")
+                OutlinedButton(onClick = { openCatalog.launch(arrayOf("application/json", "text/plain")) }) {
+                    Text("Übungskatalog importieren")
+                }
+                strengthState.importMessage?.let { message ->
+                    Text(message, color = if (message.startsWith("Katalog übernommen")) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error)
+                }
+            }
+        }
+        Text("EINSTELLUNGEN", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        ExpandableSection("Farbstil", themeExpanded, { themeExpanded = !themeExpanded }) {
+            Column {
+                AppTheme.entries.forEach { theme ->
+                    ThemeOption(
+                        theme = theme,
+                        selected = state.theme == theme,
+                        onSelect = { viewModel.select(theme) }
+                    )
+                }
+            }
         }
         if (state.isSaving) Text("Wird gespeichert …")
         if (state.saveFailed) Text("Deine Auswahl konnte nicht gespeichert werden. Bitte versuche es erneut.")
-        Text("Sicherung", style = MaterialTheme.typography.titleLarge)
-        Text("Übertrage deine LAP-Daten geschützt auf ein neues Handy.")
-        Text("Die Freigabe für Gesundheitsdaten richtest du auf dem neuen Handy erneut ein.")
-        Button(
-            onClick = {
-                restoreUri = null
-                password = ""
-                passwordDialog = true
-            },
-            enabled = !backupState.isWorking
-        ) { Text("Sicherung erstellen") }
-        OutlinedButton(
-            onClick = { openDocument.launch(arrayOf("application/octet-stream", "application/vnd.lap.sicherung")) },
-            enabled = !backupState.isWorking
-        ) { Text("Sicherung wiederherstellen") }
-        backupState.message?.let { message ->
-            Text(message, color = if (backupState.isSuccess) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error)
+        ExpandableSection("Sicherung", backupExpanded, { backupExpanded = !backupExpanded }) {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("Übertrage deine LAP-Daten geschützt auf ein neues Handy.")
+                Text("Die Freigabe für Gesundheitsdaten richtest du auf dem neuen Handy erneut ein.")
+                Button(
+                    onClick = {
+                        restoreUri = null
+                        password = ""
+                        passwordDialog = true
+                    },
+                    enabled = !backupState.isWorking
+                ) { Text("Sicherung erstellen") }
+                OutlinedButton(
+                    onClick = { openDocument.launch(arrayOf("application/octet-stream", "application/vnd.lap.sicherung")) },
+                    enabled = !backupState.isWorking
+                ) { Text("Sicherung wiederherstellen") }
+                backupState.message?.let { message ->
+                    Text(message, color = if (backupState.isSuccess) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error)
+                }
+                if (backupState.isWorking) CircularProgressIndicator()
+            }
         }
-        if (backupState.isWorking) CircularProgressIndicator()
         backupState.preview?.let { preview ->
             Card(Modifier.fillMaxWidth()) {
                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {

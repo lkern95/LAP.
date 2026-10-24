@@ -4,8 +4,12 @@
 
 ## Product and privacy
 - User-facing language is plain German.
-- Keep health data on the device. Do not add cloud services, unofficial Garmin APIs, scraping, reverse-engineered endpoints, or stored Garmin credentials.
-- Garmin data enters through Garmin Connect and Health Connect. Keep Garmin-derived and app-owned data distinguishable.
+- Keep health data on the device. Do not add cloud services or third-party servers.
+- A narrowly scoped, private-use, read-only Garmin Connect web-service client is permitted only for the account owner, when explicitly authorized for this LAP project. With the owner's explicit authorization, it may also read sleep, resting-heart-rate, and immediately necessary daily health metrics for local training feedback. It may never write, edit, delete, archive, or mark Garmin data as synchronized.
+- Never bypass CAPTCHA, MFA, rate limits, bot challenges, or other access controls. Do not rotate TLS fingerprints, imitate unrelated devices to evade controls, scrape HTML login pages, or use fallback strategies intended to evade blocks. If Garmin rejects the standard login/API flow, stop and report the stage and reason code.
+- Garmin passwords are transient input only and must never be persisted or logged. Persist session tokens only when necessary, encrypted with an Android Keystore-backed key. Keep Garmin-derived and app-owned data distinguishable.
+- Keep the existing Garmin Connect → Health Connect path and local FIT import available; the private Garmin Connect client must not replace them.
+- A user-selected Garmin backup may be processed locally from ZIP, FIT, GPX, or TCX. Preserve original bytes with SHA-256, cap archive expansion, reject unsafe XML, retain successful entries when another is damaged, and report unsupported categories.
 - Never expose implementation terminology, exceptions, HTTP errors, or storage details in the UI.
 
 ## Architecture

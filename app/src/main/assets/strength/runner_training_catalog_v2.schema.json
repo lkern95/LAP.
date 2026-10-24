@@ -1,0 +1,477 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Läufertraining – Übungskatalog, Version 1.1",
+  "description": "Validierbares deutsches Übungsarchiv für eine Läufer-App. Enthält gangorientiertes PNF-D1, Hüftabduktorenkraft, Hüftextensoren und optionale Mobilität.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "locale",
+    "safetyAdvice",
+    "exercises",
+    "workouts"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": "1.1.0"
+    },
+    "locale": {
+      "const": "de-DE"
+    },
+    "safetyAdvice": {
+      "type": "string",
+      "minLength": 1
+    },
+    "exercises": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/exercise"
+      }
+    },
+    "workouts": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/workout"
+      }
+    }
+  },
+  "$defs": {
+    "prescription": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type",
+            "reps",
+            "perSide",
+            "restSeconds"
+          ],
+          "properties": {
+            "type": {
+              "const": "repetitions"
+            },
+            "reps": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100
+            },
+            "perSide": {
+              "type": "boolean"
+            },
+            "restSeconds": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 300
+            },
+            "tempo": {
+              "type": "string",
+              "pattern": "^[0-9Xx]+-[0-9Xx]+-[0-9Xx]+-[0-9Xx]+$",
+              "description": "Sekunden: exzentrisch - unten - konzentrisch - oben; X = explosiv."
+            },
+            "holdPerRepSeconds": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 60
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type",
+            "holdSeconds",
+            "perSide",
+            "restSeconds"
+          ],
+          "properties": {
+            "type": {
+              "const": "hold"
+            },
+            "holdSeconds": {
+              "type": "integer",
+              "minimum": 5,
+              "maximum": 300
+            },
+            "perSide": {
+              "type": "boolean"
+            },
+            "restSeconds": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 300
+            }
+          }
+        }
+      ]
+    },
+    "media": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "imageKey",
+        "altText",
+        "illustrationDirection"
+      ],
+      "properties": {
+        "imageKey": {
+          "type": "string",
+          "pattern": "^[a-z0-9_]+$"
+        },
+        "altText": {
+          "type": "string",
+          "minLength": 1
+        },
+        "illustrationDirection": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "exercise": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "title",
+        "subtitle",
+        "description",
+        "movementType",
+        "difficulty",
+        "focusAreas",
+        "runnerGoals",
+        "equipment",
+        "prescription",
+        "steps",
+        "techniqueCues",
+        "tip",
+        "commonMistakes",
+        "cautions",
+        "regression",
+        "progression",
+        "media"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z0-9_]+$"
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1
+        },
+        "subtitle": {
+          "type": "string",
+          "minLength": 1
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1
+        },
+        "movementType": {
+          "enum": [
+            "dynamic",
+            "isometric",
+            "motor_control",
+            "mobility"
+          ]
+        },
+        "difficulty": {
+          "enum": [
+            "beginner",
+            "intermediate",
+            "advanced"
+          ]
+        },
+        "focusAreas": {
+          "type": "array",
+          "uniqueItems": true,
+          "minItems": 1,
+          "items": {
+            "enum": [
+              "quadriceps",
+              "gluteus_maximus",
+              "hip_abductors",
+              "hip_external_rotators",
+              "hamstrings",
+              "soleus",
+              "abdominal_control",
+              "knee_proprioception",
+              "ankle_stabilizers",
+              "hip_adductors"
+            ]
+          }
+        },
+        "runnerGoals": {
+          "type": "array",
+          "uniqueItems": true,
+          "minItems": 1,
+          "items": {
+            "enum": [
+              "running_strength",
+              "uphill",
+              "downhill",
+              "knee_tracking",
+              "knee_hyperextension_control",
+              "hip_stability",
+              "lumbopelvic_control",
+              "ankle_stability",
+              "gait_coordination",
+              "hip_abductor_strength",
+              "hip_extension_strength",
+              "adductor_mobility"
+            ]
+          }
+        },
+        "equipment": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "mini_band",
+              "long_band",
+              "wall",
+              "step",
+              "stable_band_anchor",
+              "optional_support",
+              "foot_cuff"
+            ]
+          }
+        },
+        "prescription": {
+          "$ref": "#/$defs/prescription"
+        },
+        "steps": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 8,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "techniqueCues": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 6,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "tip": {
+          "type": "string",
+          "minLength": 1
+        },
+        "commonMistakes": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "cautions": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "regression": {
+          "type": "string",
+          "minLength": 1
+        },
+        "progression": {
+          "type": "string",
+          "minLength": 1
+        },
+        "media": {
+          "$ref": "#/$defs/media"
+        },
+        "pnfPattern": {
+          "type": "object",
+          "description": "Optionales anatomisches PNF-Muster; bei Standard-PNF ausschließlich lehrbuchkonforme Diagonalen verwenden.",
+          "additionalProperties": false,
+          "required": [
+            "family",
+            "diagonal",
+            "coordinationModel",
+            "phases"
+          ],
+          "properties": {
+            "family": {
+              "const": "lower_extremity"
+            },
+            "diagonal": {
+              "enum": [
+                "D1",
+                "D2"
+              ]
+            },
+            "coordinationModel": {
+              "enum": [
+                "sprinter_gait_oriented",
+                "skater_gait_oriented",
+                "isolated_diagonal"
+              ]
+            },
+            "phases": {
+              "type": "array",
+              "minItems": 2,
+              "maxItems": 2,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "direction",
+                  "hipComponents",
+                  "ankleComponents"
+                ],
+                "properties": {
+                  "direction": {
+                    "enum": [
+                      "flexion",
+                      "extension"
+                    ]
+                  },
+                  "hipComponents": {
+                    "type": "array",
+                    "minItems": 3,
+                    "maxItems": 3,
+                    "uniqueItems": true,
+                    "items": {
+                      "enum": [
+                        "flexion",
+                        "extension",
+                        "abduction",
+                        "adduction",
+                        "internal_rotation",
+                        "external_rotation"
+                      ]
+                    }
+                  },
+                  "ankleComponents": {
+                    "type": "array",
+                    "minItems": 1,
+                    "uniqueItems": true,
+                    "items": {
+                      "enum": [
+                        "dorsiflexion",
+                        "plantarflexion",
+                        "inversion",
+                        "eversion"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "workout": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "title",
+        "subtitle",
+        "description",
+        "estimatedMinutes",
+        "warmUpMinutes",
+        "rounds",
+        "restBetweenExercisesSeconds",
+        "restBetweenRoundsSeconds",
+        "runnerGoals",
+        "exerciseIds"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z0-9_]+$"
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1
+        },
+        "subtitle": {
+          "type": "string",
+          "minLength": 1
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1
+        },
+        "estimatedMinutes": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 180
+        },
+        "warmUpMinutes": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 30
+        },
+        "rounds": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 6,
+          "description": "Anzahl Sätze pro Übung; nicht zusätzlich mit einer exercise-set-Anzahl multiplizieren."
+        },
+        "restBetweenExercisesSeconds": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 300
+        },
+        "restBetweenRoundsSeconds": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 600
+        },
+        "runnerGoals": {
+          "type": "array",
+          "uniqueItems": true,
+          "minItems": 1,
+          "items": {
+            "enum": [
+              "running_strength",
+              "uphill",
+              "downhill",
+              "knee_tracking",
+              "knee_hyperextension_control",
+              "hip_stability",
+              "lumbopelvic_control",
+              "ankle_stability",
+              "gait_coordination",
+              "hip_abductor_strength",
+              "hip_extension_strength",
+              "adductor_mobility"
+            ]
+          }
+        },
+        "exerciseIds": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z0-9_]+$"
+          }
+        },
+        "optionalExerciseIds": {
+          "type": "array",
+          "uniqueItems": true,
+          "description": "Optional: referenzierte Übungs-IDs, die den Workout-Abschluss nicht blockieren.",
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z0-9_]+$"
+          }
+        }
+      }
+    }
+  }
+}

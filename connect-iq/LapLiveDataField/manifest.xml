@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<iq:manifest xmlns:iq="http://www.garmin.com/xml/connectiq" version="3">
+    <iq:application id="7D574A829AAC4E83AF6A6E1F04E8A09B" type="datafield" name="@Strings.AppName" entry="LapLiveDataFieldApp" launcherIcon="@Drawables.LauncherIcon" minApiLevel="5.0.0">
+        <iq:products>
+            <iq:product id="vivoactive5" />
+        </iq:products>
+        <iq:permissions>
+            <iq:uses-permission id="Communications" />
+        </iq:permissions>
+        <iq:languages>
+            <iq:language>deu</iq:language>
+        </iq:languages>
+    </iq:application>
+</iq:manifest>

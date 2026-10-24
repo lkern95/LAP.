@@ -132,10 +132,45 @@ class TrainingPlanBuilderTest {
     fun `one run in previous week repeats the prior training load`() {
         val raceDate = today.plusWeeks(15)
         val baseline = build(profile(), goal(raceDate))
-        val adjusted = build(profile(), goal(raceDate), listOf(workout(today.minusDays(3))))
+        val adjusted = build(
+            profile(),
+            goal(raceDate),
+            listOf(workout(today.minusDays(3)).copy(
+                endedAtMillis = today.minusDays(3).atStartOfDay().toInstant(ZoneOffset.UTC)
+                    .plusSeconds(1_800).toEpochMilli()
+            ))
+        )
 
         assertEquals(PlanStatus.READY, adjusted.status)
         assertTrue(adjusted.weeks.first().longRunMinutes < baseline.weeks.first().longRunMinutes)
+    }
+
+    @Test
+    fun `long run starts from measured recent running duration`() {
+        val shortRecentRun = workout(today.minusDays(2)).copy(
+            endedAtMillis = today.minusDays(2).atStartOfDay().toInstant(ZoneOffset.UTC)
+                .plusSeconds(1_500).toEpochMilli()
+        )
+
+        val plan = build(profile(), goal(today.plusWeeks(20)), listOf(shortRecentRun))
+
+        assertEquals(25, plan.weeks.first().longRunMinutes)
+        assertEquals(plan.weeks.first().longRunMinutes, plan.weeks.first().runs.last().totalMinutes)
+    }
+
+    @Test
+    fun `consistent recent training allows only a small individualized long run step`() {
+        val recentRuns = listOf(1L, 3L, 5L, 7L, 9L, 11L).map { daysAgo ->
+            workout(today.minusDays(daysAgo)).copy(
+                endedAtMillis = today.minusDays(daysAgo).atStartOfDay().toInstant(ZoneOffset.UTC)
+                    .plusSeconds(3_000).toEpochMilli()
+            )
+        }
+
+        val plan = build(profile(), goal(today.plusWeeks(11)), recentRuns)
+
+        assertEquals(60, plan.weeks.first().longRunMinutes)
+        assertEquals(de.run.app.domain.model.PlanAdjustment.CONTINUE, plan.adjustment)
     }
 
     @Test

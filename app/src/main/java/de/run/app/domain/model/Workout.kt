@@ -11,7 +11,10 @@ data class Workout(
     val distanceMeters: Double?,
     val averageHeartRateBpm: Int? = null,
     val maximumHeartRateBpm: Int? = null,
-    val feedback: WorkoutFeedback? = null
+    val feedback: WorkoutFeedback? = null,
+    val activityType: WorkoutActivityType = WorkoutActivityType.RUNNING,
+    val averageCadenceRpm: Int? = null,
+    val planMatch: WorkoutPlanMatch? = null
 ) {
     val durationSeconds: Long
         get() = ((endedAtMillis - startedAtMillis) / 1_000L).coerceAtLeast(0)
@@ -23,6 +26,8 @@ data class Workout(
             return (duration * 1_000.0 / distance).roundToLong()
         }
 }
+
+fun Workout.isRunning(): Boolean = activityType == WorkoutActivityType.RUNNING
 
 data class WorkoutFeedback(
     val perceivedEffort: Int?,

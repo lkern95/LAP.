@@ -78,7 +78,11 @@ class WorkoutProcessPersistenceTest {
                 RunDatabase.MIGRATION_1_2,
                 RunDatabase.MIGRATION_2_3,
                 RunDatabase.MIGRATION_3_4,
-                RunDatabase.MIGRATION_4_5
+                RunDatabase.MIGRATION_4_5,
+                RunDatabase.MIGRATION_5_6,
+                RunDatabase.MIGRATION_6_7,
+                RunDatabase.MIGRATION_7_8,
+                RunDatabase.MIGRATION_8_9
             )
             .build()
 

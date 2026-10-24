@@ -49,7 +49,6 @@ fun PlanScreen(
     onOpenStrength: () -> Unit,
     onOpenTrainingDetails: (LocalDate, PlannedRun) -> Unit,
     onConnectGarmin: () -> Unit,
-    onSetupHealthSync: () -> Unit,
     onOnboardingComplete: () -> Unit
 ) {
     val state by viewModel.state.collectAsState()
@@ -90,7 +89,6 @@ fun PlanScreen(
             saveFailed = state.saveFailed,
             isSaving = state.isSaving,
             onConnectGarmin = onConnectGarmin,
-            onSetupHealthSync = onSetupHealthSync,
             garminLoading = history.isLoading,
             garminConnected = garminAccessReady,
             garminRequestResultArrived = permissionResult != null,
@@ -102,12 +100,10 @@ fun PlanScreen(
         )
         else -> TrainingPlanContent(
             state,
-            onEditGoal = { viewModel.editGoal() },
+            planChangeSummary = history.trainingFeedback?.planChangeSummary,
             onNewGoal = { viewModel.editGoal(createNew = true) },
             onPlanMode = viewModel::setPlanMode,
-            onEditAvailability = viewModel::editAvailability,
             onEditStartPoint = viewModel::editStartPoint,
-            onShowCompetitionQuestion = viewModel::showCompetitionQuestion,
             onShowGoalAchievementQuestion = viewModel::showGoalAchievementQuestion,
             onOpenStrength = onOpenStrength,
             onOpenTrainingDetails = onOpenTrainingDetails
@@ -131,12 +127,10 @@ private fun LoadingPlan() {
 @Composable
 private fun TrainingPlanContent(
     state: PlanUiState,
-    onEditGoal: () -> Unit,
+    planChangeSummary: String?,
     onNewGoal: () -> Unit,
     onPlanMode: (TrainingPlanMode) -> Unit,
-    onEditAvailability: () -> Unit,
     onEditStartPoint: () -> Unit,
-    onShowCompetitionQuestion: () -> Unit,
     onShowGoalAchievementQuestion: () -> Unit,
     onOpenStrength: () -> Unit,
     onOpenTrainingDetails: (LocalDate, PlannedRun) -> Unit
@@ -151,14 +145,10 @@ private fun TrainingPlanContent(
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
         Text(if (plan.status == PlanStatus.MAINTAINING_FORM) "Form halten" else "Wochenplan", style = MaterialTheme.typography.headlineMedium)
-        TrainingAdjustmentNotice(plan.adjustment)
+        TrainingAdjustmentNotice(plan.adjustment, planChangeSummary)
         state.goal?.takeIf { it.status == TrainingGoalStatus.ACTIVE }?.let { goal ->
             Text("${raceDistanceName(goal.raceDistanceMeters)} am ${goal.raceDate.format(DateTimeFormatter.ofPattern("dd.MM.yyyy"))}")
             Text("Dein Ziel: ${goalDescription(goal)}", color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Button(onClick = onEditGoal) { Text("Ziel bearbeiten") }
-            if (state.pendingCompetitionCandidate?.sourceId == state.dismissedCompetitionWorkoutId) {
-                Button(onClick = onShowCompetitionQuestion) { Text("Wettkampfabschluss einordnen") }
-            }
         }
         when (plan.status) {
             PlanStatus.EVENT_TOO_CLOSE -> {
@@ -167,7 +157,6 @@ private fun TrainingPlanContent(
                         "Der Zieltermin liegt zurück. Das bedeutet nicht automatisch, dass du am Wettkampf teilgenommen hast."
                     } else "Bis zum Wettkampf bleibt wenig Vorbereitungszeit. LAP plant keine ausgefallenen Einheiten nach."
                 )
-                Button(onClick = onEditGoal) { Text("Ziel bearbeiten") }
                 Button(onClick = onNewGoal) { Text("Neues Ziel") }
                 Button(onClick = { onPlanMode(TrainingPlanMode.MAINTAIN_FORM) }) { Text("Form halten") }
                 Button(onClick = { onPlanMode(TrainingPlanMode.PAUSED) }) { Text("Pause") }
@@ -197,7 +186,6 @@ private fun TrainingPlanContent(
                 Button(onClick = { onPlanMode(if (state.goal?.status == TrainingGoalStatus.ACTIVE) TrainingPlanMode.RACE else TrainingPlanMode.MAINTAIN_FORM) }) {
                     Text(if (state.goal?.status == TrainingGoalStatus.ACTIVE) "Zieltraining fortsetzen" else "Form halten")
                 }
-                if (state.goal?.status == TrainingGoalStatus.ACTIVE) Button(onClick = onEditGoal) { Text("Ziel bearbeiten") }
                 Button(onClick = onNewGoal) { Text("Neues Ziel") }
             }
             PlanStatus.READY, PlanStatus.MAINTAINING_FORM -> if (plan.weeks.isNotEmpty()) {
@@ -237,8 +225,6 @@ private fun TrainingPlanContent(
                 Text("${raceDistanceName(oldGoal.raceDistanceMeters)} · ${oldGoal.raceDate.format(DateTimeFormatter.ofPattern("dd.MM.yyyy"))} · ${goalStatusLabel(oldGoal)}")
             }
         }
-        Button(onClick = onOpenStrength) { Text("Kraftübungen ansehen") }
-        Button(onClick = onEditAvailability) { Text("Verfügbarkeit ändern") }
         Button(onClick = onEditStartPoint) { Text("Startpunkt ändern") }
     }
 }

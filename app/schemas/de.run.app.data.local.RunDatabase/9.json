@@ -1,0 +1,333 @@
+{
+  "formatVersion": 1,
+  "database": {
+    "version": 9,
+    "identityHash": "26479276fb2c16ee2a3550532700d121",
+    "entities": [
+      {
+        "tableName": "workouts",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`sourceId` TEXT NOT NULL, `sourceName` TEXT NOT NULL, `title` TEXT NOT NULL, `startedAtMillis` INTEGER NOT NULL, `endedAtMillis` INTEGER NOT NULL, `distanceMeters` REAL, `averageHeartRateBpm` INTEGER, `maximumHeartRateBpm` INTEGER, `perceivedEffort` INTEGER, `runningAffectedBySymptoms` TEXT, `feedbackRecordedAtMillis` INTEGER, `activityType` TEXT NOT NULL, `averageCadenceRpm` INTEGER, PRIMARY KEY(`sourceId`))",
+        "fields": [
+          {
+            "fieldPath": "sourceId",
+            "columnName": "sourceId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sourceName",
+            "columnName": "sourceName",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "title",
+            "columnName": "title",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "startedAtMillis",
+            "columnName": "startedAtMillis",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "endedAtMillis",
+            "columnName": "endedAtMillis",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "distanceMeters",
+            "columnName": "distanceMeters",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "averageHeartRateBpm",
+            "columnName": "averageHeartRateBpm",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "maximumHeartRateBpm",
+            "columnName": "maximumHeartRateBpm",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "perceivedEffort",
+            "columnName": "perceivedEffort",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "runningAffectedBySymptoms",
+            "columnName": "runningAffectedBySymptoms",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "feedbackRecordedAtMillis",
+            "columnName": "feedbackRecordedAtMillis",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "activityType",
+            "columnName": "activityType",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "averageCadenceRpm",
+            "columnName": "averageCadenceRpm",
+            "affinity": "INTEGER"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "sourceId"
+          ]
+        }
+      },
+      {
+        "tableName": "strength_completions",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `exerciseId` TEXT NOT NULL, `completedOn` TEXT NOT NULL, PRIMARY KEY(`id`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "exerciseId",
+            "columnName": "exerciseId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "completedOn",
+            "columnName": "completedOn",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        }
+      },
+      {
+        "tableName": "training_decisions",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `ruleVersion` INTEGER NOT NULL, `inputRevision` TEXT NOT NULL, `targetRevision` TEXT, `evaluatedOn` TEXT NOT NULL, `runCount` INTEGER NOT NULL, `latestRunEndedAtMillis` INTEGER, `recommendationTitle` TEXT, `recommendationMinutes` INTEGER, `reasonCode` TEXT NOT NULL, PRIMARY KEY(`id`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "ruleVersion",
+            "columnName": "ruleVersion",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "inputRevision",
+            "columnName": "inputRevision",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "targetRevision",
+            "columnName": "targetRevision",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "evaluatedOn",
+            "columnName": "evaluatedOn",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "runCount",
+            "columnName": "runCount",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "latestRunEndedAtMillis",
+            "columnName": "latestRunEndedAtMillis",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "recommendationTitle",
+            "columnName": "recommendationTitle",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "recommendationMinutes",
+            "columnName": "recommendationMinutes",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "reasonCode",
+            "columnName": "reasonCode",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        }
+      },
+      {
+        "tableName": "strength_sessions",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`sessionId` TEXT NOT NULL, `workoutId` TEXT NOT NULL, `catalogSnapshot` TEXT NOT NULL, `status` TEXT NOT NULL, `currentExerciseId` TEXT, `currentRound` INTEGER NOT NULL, `completedSetsJson` TEXT NOT NULL, `isCurrentSetStarted` INTEGER NOT NULL, `pauseUntilMillis` INTEGER, `startedAtMillis` INTEGER NOT NULL, `finishedAtMillis` INTEGER, `schemaVersion` TEXT NOT NULL, PRIMARY KEY(`sessionId`))",
+        "fields": [
+          {
+            "fieldPath": "sessionId",
+            "columnName": "sessionId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "workoutId",
+            "columnName": "workoutId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "catalogSnapshot",
+            "columnName": "catalogSnapshot",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "status",
+            "columnName": "status",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "currentExerciseId",
+            "columnName": "currentExerciseId",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "currentRound",
+            "columnName": "currentRound",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "completedSetsJson",
+            "columnName": "completedSetsJson",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "isCurrentSetStarted",
+            "columnName": "isCurrentSetStarted",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "pauseUntilMillis",
+            "columnName": "pauseUntilMillis",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "startedAtMillis",
+            "columnName": "startedAtMillis",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "finishedAtMillis",
+            "columnName": "finishedAtMillis",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "schemaVersion",
+            "columnName": "schemaVersion",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "sessionId"
+          ]
+        }
+      },
+      {
+        "tableName": "garmin_fit_files",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`activityId` TEXT NOT NULL, `sha256` TEXT NOT NULL, `fileName` TEXT NOT NULL, `byteCount` INTEGER NOT NULL, `savedAtMillis` INTEGER NOT NULL, `canonicalWorkoutSourceId` TEXT, PRIMARY KEY(`activityId`))",
+        "fields": [
+          {
+            "fieldPath": "activityId",
+            "columnName": "activityId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sha256",
+            "columnName": "sha256",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "fileName",
+            "columnName": "fileName",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "byteCount",
+            "columnName": "byteCount",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "savedAtMillis",
+            "columnName": "savedAtMillis",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "canonicalWorkoutSourceId",
+            "columnName": "canonicalWorkoutSourceId",
+            "affinity": "TEXT"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "activityId"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_garmin_fit_files_sha256",
+            "unique": false,
+            "columnNames": [
+              "sha256"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_garmin_fit_files_sha256` ON `${TABLE_NAME}` (`sha256`)"
+          }
+        ]
+      }
+    ],
+    "setupQueries": [
+      "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '26479276fb2c16ee2a3550532700d121')"
+    ]
+  }
+}

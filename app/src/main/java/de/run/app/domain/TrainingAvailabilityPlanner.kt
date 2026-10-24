@@ -121,10 +121,12 @@ internal class TrainingAvailabilityPlanner {
                     AvailabilityMode.RECURRING -> profile.runTimeLimitsByDay[date.dayOfWeek]
                     AvailabilityMode.VARIABLE -> profile.datedAvailability[date]?.maximumMinutes
                 }
-                ScheduledRun(
-                    date.dayOfWeek,
-                    maximumMinutes?.let { limit -> durationAdjuster.fitToAvailableTime(it, limit) } ?: it
+                val adjustedRun = maximumMinutes?.let { limit -> durationAdjuster.fitToAvailableTime(it, limit) } ?: it
+                val scheduledRun = adjustedRun.copy(
+                    trainingId = "lap-run-$date-${adjustedRun.trainingType.name.lowercase()}",
+                    scheduledDate = date
                 )
+                ScheduledRun(date.dayOfWeek, scheduledRun, date)
             }
         }
     }

@@ -28,8 +28,8 @@ android {
         applicationId = "de.run.app"
         minSdk = 29
         targetSdk = 36
-        versionCode = 3
-        versionName = "0.3.0"
+        versionCode = 10
+        versionName = "0.3.7"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables.useSupportLibrary = true
     }
@@ -125,7 +125,9 @@ dependencies {
     implementation(libs.androidx.health.connect)
     implementation(libs.androidx.work.runtime)
     implementation(libs.garmin.fit)
+    implementation("com.garmin.connectiq:ciq-companion-app-sdk:${libs.versions.garminCiq.get()}@aar")
     implementation(libs.kotlinx.coroutines.android)
+    testImplementation(libs.json)
 
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)

@@ -3,6 +3,7 @@ package de.run.app.domain
 import de.run.app.domain.model.ReadinessFacts
 import de.run.app.domain.model.TrainingProfile
 import de.run.app.domain.model.Workout
+import de.run.app.domain.model.isRunning
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
@@ -17,11 +18,13 @@ class ReadinessFactsAnalyzer {
         today: LocalDate = now.atZone(ZoneId.systemDefault()).toLocalDate()
     ): ReadinessFacts {
         val weekStart = today.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
-        val thisWeek = workouts.filter { workout ->
-            Instant.ofEpochMilli(workout.startedAtMillis)
-                .atZone(ZoneId.systemDefault()).toLocalDate() >= weekStart
+        val runs = workouts.filter(Workout::isRunning)
+        val thisWeek = runs.filter { workout ->
+            val runDate = Instant.ofEpochMilli(workout.startedAtMillis)
+                .atZone(ZoneId.systemDefault()).toLocalDate()
+            !runDate.isBefore(weekStart) && !runDate.isAfter(today)
         }
-        val lastRun = workouts.maxOfOrNull(Workout::endedAtMillis)?.let(Instant::ofEpochMilli)
+        val lastRun = runs.maxOfOrNull(Workout::endedAtMillis)?.let(Instant::ofEpochMilli)
         val minutesSinceLastRun = lastRun?.let { DurationMinutes.between(it, now) }
         return ReadinessFacts(
             minutesSinceLastRun = minutesSinceLastRun,

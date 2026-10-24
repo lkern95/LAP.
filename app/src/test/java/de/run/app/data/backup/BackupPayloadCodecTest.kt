@@ -3,6 +3,8 @@ package de.run.app.data.backup
 import de.run.app.data.local.StrengthCompletionEntity
 import de.run.app.data.local.TrainingDecisionEntity
 import de.run.app.data.local.WorkoutEntity
+import de.run.app.data.local.StrengthSessionEntity
+import de.run.app.domain.model.WorkoutActivityType
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertThrows
@@ -65,13 +67,24 @@ class BackupPayloadCodecTest {
 
     private fun sampleSnapshot() = BackupSnapshot(
         workouts = listOf(
-            WorkoutEntity("g-1", "Garmin Connect", "Lauf", 1, 2, 5_000.0, 142, 167, 3, "NONE", 4)
+            WorkoutEntity(
+                "g-1", "Garmin Backup", "Radfahren", 1, 2, 15_000.0, 142, 167, 3, "NONE", 4,
+                WorkoutActivityType.CYCLING.name, 82
+            )
         ),
         strengthCompletions = listOf(StrengthCompletionEntity("s-1", "knee", "2026-10-10")),
         trainingDecisions = listOf(TrainingDecisionEntity("current", 2, "input", "goal", "2026-10-11", 3, 2, "Locker", 30, "READY")),
         stores = mapOf(
             "training_settings" to listOf(BackupPreference("event_date", "string", "2027-03-21")),
             "appearance_settings" to listOf(BackupPreference("theme", "string", "DARK"))
+        ),
+        strengthSessions = listOf(
+            StrengthSessionEntity(
+                sessionId = "session-1", workoutId = "workout-1", catalogSnapshot = "{snapshot}",
+                status = "in_progress", currentExerciseId = "exercise-1", currentRound = 2,
+                completedSetsJson = "[]", isCurrentSetStarted = true, pauseUntilMillis = 3,
+                startedAtMillis = 1, finishedAtMillis = null, schemaVersion = "2.0.0"
+            )
         )
     )
 }

@@ -8,9 +8,13 @@ import de.run.app.domain.model.ReadinessHealthSnapshot
 import de.run.app.domain.model.Workout
 import de.run.app.domain.model.WorkoutReadResult
 import de.run.app.domain.model.WorkoutFeedback
+import de.run.app.domain.model.WorkoutPlanMatch
 import de.run.app.domain.repository.ReadinessHealthRepository
 import de.run.app.domain.repository.WorkoutRepository
 import java.time.Instant
+import java.time.ZoneId
+import java.time.DayOfWeek
+import java.time.temporal.TemporalAdjusters
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -60,11 +64,15 @@ class DebugDemoDataSource(context: Context) {
         companion object {
             fun from(json: org.json.JSONObject): DemoFixture {
                 val now = Instant.now()
+                val zone = ZoneId.systemDefault()
+                val today = now.atZone(zone).toLocalDate()
+                val weekStart = today.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
                 val records = json.getJSONArray("workouts")
                 val workouts = (0 until records.length()).map { index ->
                     val item = records.getJSONObject(index)
-                    val daysAgo = item.getInt("daysAgo").toLong()
-                    val endedAt = now.minusSeconds(daysAgo * SECONDS_PER_DAY)
+                    val runDate = minOf(weekStart.plusDays(item.getInt("weekDayOffset").toLong()), today)
+                    val scheduledEnd = runDate.atTime(12, 0).atZone(zone).toInstant()
+                    val endedAt = minOf(now, scheduledEnd).minusSeconds(index * 60L)
                     val durationSeconds = item.getInt("durationMinutes") * 60L
                     Workout(
                         sourceId = "demo:run:$index",
@@ -88,7 +96,6 @@ class DebugDemoDataSource(context: Context) {
     private companion object {
         const val FIXTURE_NAME = "run_demo_data.json"
         const val GARMIN_SOURCE = "Garmin Connect"
-        const val SECONDS_PER_DAY = 86_400L
     }
 }
 
@@ -107,6 +114,9 @@ class DemoAwareWorkoutRepository(
 
     override suspend fun saveFeedback(sourceId: String, feedback: WorkoutFeedback): Boolean =
         if (mode.enabled.value) false else real.saveFeedback(sourceId, feedback)
+
+    override suspend fun savePlanMatch(sourceId: String, match: WorkoutPlanMatch): Boolean =
+        if (mode.enabled.value) false else real.savePlanMatch(sourceId, match)
 }
 
 class DemoAwareReadinessHealthRepository(

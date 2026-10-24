@@ -3,6 +3,7 @@ package de.run.app.data.local
 import de.run.app.domain.model.Workout
 import de.run.app.domain.model.WorkoutReadResult
 import de.run.app.domain.model.WorkoutFeedback
+import de.run.app.domain.model.WorkoutPlanMatch
 import de.run.app.domain.repository.WorkoutRepository
 import java.time.Instant
 import kotlinx.coroutines.flow.Flow
@@ -37,6 +38,12 @@ class RoomWorkoutRepository(
             feedback.runningAffectedBySymptoms?.name,
             feedback.recordedAtMillis
         ) > 0
+
+    override suspend fun savePlanMatch(sourceId: String, match: WorkoutPlanMatch): Boolean {
+        val existing = dao.getBySourceId(sourceId) ?: return false
+        dao.upsertAll(listOf(WorkoutEntity.fromDomain(existing.toDomain().copy(planMatch = match))))
+        return true
+    }
 }
 
 interface HealthConnectReader {

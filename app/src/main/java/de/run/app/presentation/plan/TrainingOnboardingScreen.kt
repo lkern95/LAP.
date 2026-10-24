@@ -73,7 +73,6 @@ internal fun TrainingOnboardingScreen(
     onSave: (TrainingProfile, TrainingGoal) -> Unit,
     onCancel: () -> Unit,
     onConnectGarmin: () -> Unit,
-    onSetupHealthSync: () -> Unit = {},
     garminLoading: Boolean = false,
     garminConnected: Boolean = false,
     garminRequestResultArrived: Boolean = true,
@@ -143,7 +142,6 @@ internal fun TrainingOnboardingScreen(
                         connected = garminConnected
                     ),
                     connectionRequested = connectionRequested,
-                    onSetupHealthSync = onSetupHealthSync,
                     onConnect = {
                         if (!connectionRequested) {
                             connectionRequested = true
@@ -344,7 +342,6 @@ private fun GarminStep(
     garminSharingSupported: Boolean,
     connectionState: GarminConnectionUiState,
     connectionRequested: Boolean,
-    onSetupHealthSync: () -> Unit,
     onConnect: () -> Unit
 ) {
     val loading = connectionState == GarminConnectionUiState.CONNECTING
@@ -353,7 +350,7 @@ private fun GarminStep(
         if (garminSharingSupported) {
             "Übernimm bisherige Läufe aus Garmin Connect. LAP nutzt dafür die Gesundheitsfreigabe deines Geräts."
         } else {
-            "Garmin Connect gibt Läufe auf diesem Android nicht direkt an Health Connect weiter. Du kannst Health Sync als lokale Brücke zu Health Connect nutzen oder FIT-Dateien später unter Fortschritt importieren."
+            "Läufe kannst du später auf der Garmin-Seite über Garmin Connect abgleichen oder ein Garmin-Backup beziehungsweise eine Aktivitätsdatei importieren."
         },
         style = MaterialTheme.typography.bodyLarge,
         color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -369,16 +366,6 @@ private fun GarminStep(
     Text("LAP speichert deine Trainingsangaben und Läufe nur auf diesem Gerät.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
     Button(onClick = onConnect, enabled = !loading, modifier = Modifier.fillMaxWidth()) {
         Text(if (loading) "Freigabe wird geöffnet …" else if (garminSharingSupported) "Garmin verbinden" else "Health Connect freigeben")
-    }
-    if (!garminSharingSupported) {
-        TextButton(onClick = onSetupHealthSync, modifier = Modifier.fillMaxWidth()) {
-            Text("Health Sync einrichten")
-        }
-        Text(
-            "Health Sync liest Garmin Connect und gibt Läufe an Health Connect weiter. LAP liest freigegebene Läufe von dort ein. Alternativ kannst du später FIT-Dateien unter Fortschritt importieren.",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
     }
     Text("Du kannst die Verbindung später einrichten.", Modifier.fillMaxWidth(), color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center)
 }

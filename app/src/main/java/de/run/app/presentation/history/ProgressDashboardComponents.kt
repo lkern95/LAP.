@@ -1,6 +1,9 @@
 package de.run.app.presentation.history
 
 import androidx.compose.foundation.Canvas
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
@@ -24,9 +27,12 @@ import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.semantics.contentDescription
@@ -111,23 +117,36 @@ private fun LoadingVolume() {
 @Composable
 private fun ComparisonText(dashboard: TrainingProgressDashboard) {
     val previous = dashboard.previousDistanceMeters
-    val label = when {
+    val comparison = when {
         previous == null -> "Gesamter Verlauf"
         previous <= 0.0 && dashboard.distanceMeters > 0.0 -> "Erste Läufe"
         previous <= 0.0 -> "Noch kein Vergleich"
-        else -> {
-            val change = ((dashboard.distanceMeters - previous) / previous * 100).toInt()
-            "%+d%%".format(Locale.GERMANY, change)
-        }
+        else -> "%+d%%".format(Locale.GERMANY, ((dashboard.distanceMeters - previous) / previous * 100).toInt())
     }
     val color = if (previous != null && previous > 0.0 && dashboard.distanceMeters < previous) {
         MaterialTheme.colorScheme.onSurfaceVariant
     } else MaterialTheme.colorScheme.primary
-    Text(label, color = color, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
+    Column(horizontalAlignment = Alignment.End) {
+        Text(comparison, color = color, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
+        val comparisonPeriod = when (dashboard.period) {
+            ProgressPeriod.WEEK -> "zur Vorwoche"
+            ProgressPeriod.MONTH -> "zum Vormonat"
+            ProgressPeriod.TOTAL -> null
+        }
+        if (previous != null && previous > 0.0 && comparisonPeriod != null) {
+            Text(comparisonPeriod, color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.labelSmall)
+        }
+    }
 }
 
 @Composable
 private fun DistanceBarChart(buckets: List<ProgressDistanceBucket>, period: ProgressPeriod? = null) {
+    val barReveal = remember(period, buckets) { Animatable(0f) }
+    LaunchedEffect(barReveal) {
+        if (buckets.isNotEmpty()) {
+            barReveal.animateTo(1f, tween(durationMillis = 900, easing = FastOutSlowInEasing))
+        }
+    }
     val values = buckets.map(ProgressDistanceBucket::distanceMeters)
     val maximum = values.maxOrNull()?.takeIf { it > 0.0 } ?: 1.0
     val axisMaximum = max(ceil(maximum / 10_000.0) * 10_000.0, 10_000.0)
@@ -164,7 +183,8 @@ private fun DistanceBarChart(buckets: List<ProgressDistanceBucket>, period: Prog
                 }
                 values.forEachIndexed { index, value ->
                     if (value > 0.0) {
-                        val height = (value / axisMaximum * chartHeight).toFloat().coerceAtLeast(2.dp.toPx())
+                        val fullHeight = (value / axisMaximum * chartHeight).toFloat().coerceAtLeast(2.dp.toPx())
+                        val height = fullHeight * barReveal.value
                         val left = index * slotWidth + (slotWidth - barWidth) / 2f
                         drawRoundRect(
                             color = barColor,
@@ -216,20 +236,30 @@ private val AXIS_LABEL_WIDTH = 28.dp
 private const val MONTH_LABEL_INTERVAL_DAYS = 2
 
 @Composable
-internal fun ProgressHighlights(dashboard: TrainingProgressDashboard?) {
+internal fun ProgressHighlights(
+    dashboard: TrainingProgressDashboard?,
+    goalDistanceMeters: Double,
+    goalPaceSecondsPerKilometer: Long?,
+    goalPaceUsesForecast: Boolean
+) {
     Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
         MetricHighlight(
             title = "HM-Vorbereitung",
             value = dashboard?.longestRecentRunMeters?.let { "${formatKilometers(it)} km" } ?: "–",
-            detail = "längster Lauf · letzte 12 Wochen",
+            detail = "längster Lauf je Woche · letzte 12 Wochen",
             trend = dashboard?.weeklyLongestRunMeters.orEmpty(),
+            goalDistanceMeters = goalDistanceMeters,
             modifier = Modifier.weight(1f)
         )
         MetricHighlight(
             title = "Lauftempo",
             value = dashboard?.averagePaceSecondsPerKilometer?.let(::formatPace) ?: "–",
-            detail = "Minuten pro Kilometer",
-            trend = dashboard?.weeklyAveragePaceSecondsPerKilometer.orEmpty().filterNotNull().map(Long::toDouble),
+            detail = "Ø Laufpace je Woche · letzte 12 Wochen",
+            trend = emptyList(),
+            goalDistanceMeters = null,
+            paceTrend = dashboard?.weeklyAveragePaceSecondsPerKilometer.orEmpty(),
+            goalPaceSecondsPerKilometer = goalPaceSecondsPerKilometer,
+            goalPaceUsesForecast = goalPaceUsesForecast,
             modifier = Modifier.weight(1f)
         )
     }
@@ -241,6 +271,10 @@ private fun MetricHighlight(
     value: String,
     detail: String,
     trend: List<Double>,
+    goalDistanceMeters: Double?,
+    paceTrend: List<Long?> = emptyList(),
+    goalPaceSecondsPerKilometer: Long? = null,
+    goalPaceUsesForecast: Boolean = false,
     modifier: Modifier = Modifier
 ) {
     Card(
@@ -252,26 +286,147 @@ private fun MetricHighlight(
             Text(title, style = MaterialTheme.typography.labelLarge)
             Text(value, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold, maxLines = 1)
             Text(detail, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            MiniTrend(trend)
+            when {
+                goalDistanceMeters != null -> MiniGoalTrend(trend, goalDistanceMeters)
+                else -> MiniPaceTrend(paceTrend, goalPaceSecondsPerKilometer, goalPaceUsesForecast)
+            }
         }
     }
 }
 
 @Composable
-private fun MiniTrend(values: List<Double>) {
-    val color = MaterialTheme.colorScheme.tertiary
-    Canvas(Modifier.fillMaxWidth().height(30.dp)) {
-        if (values.size < 2 || values.maxOrNull() == 0.0) return@Canvas
-        val minimum = values.minOrNull() ?: 0.0
-        val maximum = values.maxOrNull() ?: 1.0
-        val spread = (maximum - minimum).takeIf { it > 0.0 } ?: 1.0
-        val path = Path()
-        values.forEachIndexed { index, value ->
-            val x = size.width * index / values.lastIndex.toFloat()
-            val y = size.height - ((value - minimum) / spread * (size.height - 4.dp.toPx())).toFloat() - 2.dp.toPx()
-            if (index == 0) path.moveTo(x, y) else path.lineTo(x, y)
+private fun MiniPaceTrend(
+    values: List<Long?>,
+    goalPaceSecondsPerKilometer: Long?,
+    goalPaceUsesForecast: Boolean
+) {
+    val actualColor = MaterialTheme.colorScheme.tertiary
+    val goalColor = MaterialTheme.colorScheme.primary
+    val reveal = remember(values, goalPaceSecondsPerKilometer) { Animatable(0f) }
+    LaunchedEffect(reveal) {
+        reveal.animateTo(1f, tween(durationMillis = 900, easing = FastOutSlowInEasing))
+    }
+    Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+        Canvas(Modifier.fillMaxWidth().height(38.dp)) {
+            val validPaces = values.filterNotNull().map(Long::toDouble) +
+                listOfNotNull(goalPaceSecondsPerKilometer?.toDouble())
+            if (validPaces.isEmpty()) return@Canvas
+            val minimum = validPaces.minOrNull() ?: return@Canvas
+            val maximum = validPaces.maxOrNull() ?: minimum
+            val spread = (maximum - minimum).coerceAtLeast(30.0)
+            val lowerBound = minimum - spread * 0.08
+            val upperBound = maximum + spread * 0.08
+            val top = 3.dp.toPx()
+            val bottom = size.height - 3.dp.toPx()
+            val yFor = { pace: Long ->
+                top + ((pace - lowerBound) / (upperBound - lowerBound)).toFloat() * (bottom - top)
+            }
+            val measuredPoints = values.mapIndexedNotNull { index, pace -> pace?.let { index to it } }
+            val span = values.lastIndex.coerceAtLeast(1)
+            val endIndex = reveal.value * span
+            for ((first, second) in measuredPoints.zipWithNext()) {
+                val (startIndex, startPace) = first
+                val (nextIndex, endPace) = second
+                val fraction = ((endIndex - startIndex) / (nextIndex - startIndex)).coerceIn(0f, 1f)
+                if (fraction <= 0f) continue
+                val startX = size.width * startIndex / span
+                val endX = size.width * (startIndex + (nextIndex - startIndex) * fraction) / span
+                val endY = yFor(startPace) + (yFor(endPace) - yFor(startPace)) * fraction
+                drawLine(
+                    actualColor,
+                    androidx.compose.ui.geometry.Offset(startX, yFor(startPace)),
+                    androidx.compose.ui.geometry.Offset(endX, endY),
+                    strokeWidth = 2.dp.toPx(),
+                    cap = StrokeCap.Round
+                )
+            }
+            if (measuredPoints.size == 1) {
+                val (index, pace) = measuredPoints.single()
+                drawCircle(
+                    actualColor,
+                    radius = 2.dp.toPx(),
+                    center = androidx.compose.ui.geometry.Offset(size.width * index / span, yFor(pace))
+                )
+            }
+            goalPaceSecondsPerKilometer?.let { goalPace ->
+                drawLine(
+                    color = goalColor,
+                    start = androidx.compose.ui.geometry.Offset.Zero.copy(y = yFor(goalPace)),
+                    end = androidx.compose.ui.geometry.Offset(size.width * reveal.value, yFor(goalPace)),
+                    strokeWidth = 1.5.dp.toPx(),
+                    pathEffect = PathEffect.dashPathEffect(floatArrayOf(5.dp.toPx(), 3.dp.toPx()))
+                )
+            }
         }
-        drawPath(path, color = color, style = Stroke(width = 2.dp.toPx(), cap = StrokeCap.Round))
+        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            TrendLegendEntry(actualColor, "Ist")
+            if (goalPaceSecondsPerKilometer != null) {
+                val label = if (goalPaceUsesForecast) "Prognose" else "Ziel"
+                TrendLegendEntry(goalColor, "$label ${formatPace(goalPaceSecondsPerKilometer)}", dashed = true)
+            } else {
+                Text("Zielzeit fehlt", style = MaterialTheme.typography.labelSmall, maxLines = 1)
+            }
+        }
+    }
+}
+
+@Composable
+private fun MiniGoalTrend(values: List<Double>, goalDistanceMeters: Double) {
+    val actualColor = MaterialTheme.colorScheme.tertiary
+    val goalColor = MaterialTheme.colorScheme.primary
+    val reveal = remember(values, goalDistanceMeters) { Animatable(0f) }
+    LaunchedEffect(reveal) {
+        reveal.animateTo(1f, tween(durationMillis = 900, easing = FastOutSlowInEasing))
+    }
+    Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+        Canvas(Modifier.fillMaxWidth().height(38.dp)) {
+            if (values.size < 2 || goalDistanceMeters <= 0.0) return@Canvas
+            val top = 3.dp.toPx()
+            val bottom = size.height - 3.dp.toPx()
+            val scale = max(goalDistanceMeters, values.maxOrNull() ?: 0.0) * 1.08
+            val yFor = { value: Double -> bottom - (value / scale).toFloat() * (bottom - top) }
+            val lastSegment = reveal.value * values.lastIndex
+            val completeSegments = lastSegment.toInt().coerceIn(0, values.lastIndex)
+            val actualPath = Path().apply { moveTo(0f, yFor(values.first())) }
+            for (index in 1..completeSegments) {
+                actualPath.lineTo(size.width * index / values.lastIndex, yFor(values[index]))
+            }
+            val partial = lastSegment - completeSegments
+            if (completeSegments < values.lastIndex && partial > 0f) {
+                val nextY = yFor(values[completeSegments]) +
+                    (yFor(values[completeSegments + 1]) - yFor(values[completeSegments])) * partial
+                actualPath.lineTo(size.width * lastSegment / values.lastIndex, nextY)
+            }
+            drawPath(actualPath, actualColor, style = Stroke(2.dp.toPx(), cap = StrokeCap.Round))
+            val goalY = yFor(goalDistanceMeters)
+            drawLine(
+                color = goalColor,
+                start = androidx.compose.ui.geometry.Offset.Zero.copy(y = goalY),
+                end = androidx.compose.ui.geometry.Offset(size.width * reveal.value, goalY),
+                strokeWidth = 1.5.dp.toPx(),
+                pathEffect = PathEffect.dashPathEffect(floatArrayOf(5.dp.toPx(), 3.dp.toPx()))
+            )
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            TrendLegendEntry(actualColor, "Ist")
+            TrendLegendEntry(goalColor, "Ziel ${formatKilometers(goalDistanceMeters)} km", dashed = true)
+        }
+    }
+}
+
+@Composable
+private fun TrendLegendEntry(color: androidx.compose.ui.graphics.Color, label: String, dashed: Boolean = false) {
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+        Canvas(Modifier.width(12.dp).height(5.dp)) {
+            drawLine(
+                color = color,
+                start = androidx.compose.ui.geometry.Offset.Zero,
+                end = androidx.compose.ui.geometry.Offset(size.width, 0f),
+                strokeWidth = 1.5.dp.toPx(),
+                pathEffect = if (dashed) PathEffect.dashPathEffect(floatArrayOf(3.dp.toPx(), 2.dp.toPx())) else null
+            )
+        }
+        Text(label, style = MaterialTheme.typography.labelSmall, maxLines = 1)
     }
 }
 

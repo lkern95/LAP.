@@ -88,7 +88,8 @@ class AndroidAppBackupRepository(
             workouts = workoutDao.getAllForBackup(),
             strengthCompletions = strengths.getAllForBackup(),
             trainingDecisions = decisions.getAllForBackup(),
-            stores = preferences.read()
+            stores = preferences.read(),
+            strengthSessions = database.strengthSessionDao().getAllForBackup()
         )
     }
 
@@ -97,9 +98,11 @@ class AndroidAppBackupRepository(
             database.workoutDao().deleteAll()
             database.strengthCompletionDao().deleteAll()
             database.trainingDecisionDao().deleteAll()
+            database.strengthSessionDao().deleteAll()
             database.workoutDao().upsertAll(snapshot.workouts)
             database.strengthCompletionDao().upsertAll(snapshot.strengthCompletions)
             database.trainingDecisionDao().upsertAll(snapshot.trainingDecisions)
+            database.strengthSessionDao().upsertAll(snapshot.strengthSessions)
         }
         preferences.replace(snapshot.stores)
     }
@@ -108,6 +111,7 @@ class AndroidAppBackupRepository(
         if (snapshot.workouts.map { it.sourceId }.toSet().size != snapshot.workouts.size ||
             snapshot.strengthCompletions.map { it.id }.toSet().size != snapshot.strengthCompletions.size ||
             snapshot.trainingDecisions.map { it.id }.toSet().size != snapshot.trainingDecisions.size ||
+            snapshot.strengthSessions.map { it.sessionId }.toSet().size != snapshot.strengthSessions.size ||
             snapshot.stores.keys != setOf("training_settings", "appearance_settings") ||
             snapshot.stores.values.any { values -> values.map { it.name }.toSet().size != values.size }
         ) throw InvalidBackupFile()
@@ -129,6 +133,21 @@ class AndroidAppBackupRepository(
         }
         snapshot.strengthCompletions.forEach { runCatching { java.time.LocalDate.parse(it.completedOn) }.getOrElse { throw InvalidBackupFile() } }
         snapshot.trainingDecisions.forEach { runCatching { java.time.LocalDate.parse(it.evaluatedOn) }.getOrElse { throw InvalidBackupFile() } }
+        snapshot.strengthSessions.forEach { session ->
+            if (session.status !in setOf("in_progress", "completed") || session.currentRound < 1 ||
+                session.schemaVersion != "2.0.0" || session.startedAtMillis < 0 ||
+                session.catalogSnapshot.toByteArray(Charsets.UTF_8).size > de.run.app.data.strength.StrengthCatalogJsonParser.MAX_CATALOG_BYTES
+            ) throw InvalidBackupFile()
+            try {
+                val catalog = de.run.app.data.strength.StrengthCatalogJsonParser().parse(session.catalogSnapshot)
+                val progress = session.toDomain()
+                val workout = catalog.workouts.first { it.id == progress.workoutId }
+                if (progress.currentExerciseId != null && progress.currentExerciseId !in workout.exerciseIds ||
+                    progress.completedSets.map { "${it.exerciseId}:${it.round}" }.toSet().size != progress.completedSets.size ||
+                    progress.completedSets.any { it.exerciseId !in workout.exerciseIds || it.round !in 1..workout.rounds || it.completedAtMillis < progress.startedAtMillis }
+                ) throw InvalidBackupFile()
+            } catch (_: Exception) { throw InvalidBackupFile() }
+        }
         snapshot.stores["training_settings"].orEmpty()
             .firstOrNull { it.name == "training_goal_history_v1" }
             ?.let { history ->
@@ -144,7 +163,7 @@ class AndroidAppBackupRepository(
             ?.takeIf(String::isNotEmpty)?.count { it == ';' }?.plus(1) ?: 0
         return AppBackupSummary(
             workoutCount = workouts.size,
-            strengthSessionCount = strengthCompletions.size,
+            strengthSessionCount = strengthCompletions.size + strengthSessions.count { it.status == "completed" },
             goalCount = goals,
             feedbackCount = workouts.count { it.feedbackRecordedAtMillis != null },
             replacesExistingData = replacesExisting
@@ -152,5 +171,5 @@ class AndroidAppBackupRepository(
     }
 
     private fun BackupSnapshot.hasUserData() = workouts.isNotEmpty() || strengthCompletions.isNotEmpty() ||
-        trainingDecisions.isNotEmpty() || stores.values.any { it.isNotEmpty() }
+        trainingDecisions.isNotEmpty() || strengthSessions.isNotEmpty() || stores.values.any { it.isNotEmpty() }
 }

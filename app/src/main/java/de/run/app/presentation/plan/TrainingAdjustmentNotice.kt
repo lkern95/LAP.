@@ -14,12 +14,16 @@ import androidx.compose.ui.unit.dp
 import de.run.app.domain.model.PlanAdjustment
 
 @Composable
-fun TrainingAdjustmentNotice(adjustment: PlanAdjustment) {
+fun TrainingAdjustmentNotice(adjustment: PlanAdjustment, explanation: String? = null) {
     val message = when (adjustment) {
         PlanAdjustment.REPEAT_AFTER_HIGH_EFFORT ->
             "Mehrere ähnlich lange Läufe waren anstrengend. LAP behält den Aufbau zunächst bei."
         PlanAdjustment.REVIEW_REPORTED_SYMPTOMS ->
             "Du hast Beschwerden beim Laufen gemeldet. LAP setzt den Belastungsaufbau aus. Eine spätere Rückmeldung kann den Hinweis aktualisieren."
+        PlanAdjustment.RECOVER_AFTER_HIGH_LOAD ->
+            "Dein Trainingsplan reagiert auf eine deutlich höhere Belastung. Die nächste Laufeinheit ist verkürzt und sehr leicht."
+        PlanAdjustment.HOLD_AFTER_SLOWING ->
+            "Dein Tempo wurde bei ähnlichem Umfang und ähnlicher Anstrengung langsamer. LAP hält den Aufbau zurück und plant eine leichtere Einheit."
         else -> return
     }
     Card(
@@ -29,7 +33,7 @@ fun TrainingAdjustmentNotice(adjustment: PlanAdjustment) {
     ) {
         Column(Modifier.padding(14.dp)) {
             Text("Deine Rückmeldung ist berücksichtigt", style = MaterialTheme.typography.titleSmall)
-            Text(message, style = MaterialTheme.typography.bodySmall)
+            Text(explanation ?: message, style = MaterialTheme.typography.bodySmall)
         }
     }
 }

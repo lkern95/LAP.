@@ -5,6 +5,7 @@ import de.run.app.domain.model.TrainingGoal
 import de.run.app.domain.model.TrainingPlan
 import de.run.app.domain.model.TrainingProfile
 import de.run.app.domain.model.Workout
+import de.run.app.domain.model.isRunning
 import java.security.MessageDigest
 import java.time.LocalDate
 
@@ -16,7 +17,7 @@ class TrainingDecisionSnapshotFactory {
         plan: TrainingPlan,
         today: LocalDate
     ): TrainingDecisionSnapshot {
-        val distinctRuns = workouts.groupBy(Workout::sourceId).values.map { versions ->
+        val distinctRuns = workouts.filter(Workout::isRunning).groupBy(Workout::sourceId).values.map { versions ->
             versions.maxWith(compareBy<Workout> { it.endedAtMillis }.thenBy { it.feedback?.recordedAtMillis ?: 0L })
         }.sortedBy(Workout::sourceId)
         val firstRun = plan.weeks.firstOrNull()?.runs?.firstOrNull()

@@ -3,12 +3,14 @@ package de.run.app.presentation.plan
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import de.run.app.domain.model.AppTheme
 import de.run.app.domain.model.PlannedRun
 import de.run.app.domain.model.RunStep
 import de.run.app.presentation.theme.RunTheme
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 
@@ -30,14 +32,38 @@ class TrainingDetailsScreenTest {
 
         composeRule.onNodeWithText("Trainingsdetails").assertIsDisplayed()
         composeRule.onNodeWithText("Lockerer Lauf").assertIsDisplayed()
-        composeRule.onNodeWithText("Nicht vorgegeben").assertIsDisplayed()
+        composeRule.onNodeWithText("Dauer").assertIsDisplayed()
+        composeRule.onNodeWithText("RPE-Skala: 1 = sehr leicht, 10 = maximal.").performScrollTo().assertIsDisplayed()
+        composeRule.onAllNodesWithText("Sprechtempo", substring = true)[0].performScrollTo().assertIsDisplayed()
+        composeRule.onAllNodesWithText("RPE 2–4 von 10", substring = true)[0].performScrollTo().assertIsDisplayed()
         composeRule.onNodeWithText("Einlaufen").performScrollTo().assertIsDisplayed()
         composeRule.onNodeWithText("Hauptteil").performScrollTo().assertIsDisplayed()
         composeRule.onNodeWithText("Auslaufen").performScrollTo().assertIsDisplayed()
 
-        composeRule.onNodeWithText("Auf der Uhr starten  →").performClick()
-        composeRule.onNodeWithText("Wähle auf der Uhr Aktivitäten → Laufen. Nach der Synchronisierung findest du den Lauf hier.")
+        composeRule.onNodeWithText("Live-Begleitung starten").assertIsDisplayed()
+        assertTrue(composeRule.onAllNodesWithText("Live-Coach im Emulator testen").fetchSemanticsNodes().isEmpty())
+        composeRule.onNodeWithText("Starte die Aufzeichnung auf deiner Garmin-Uhr. LAP begleitet den Lauf hier.").assertIsDisplayed()
+        composeRule.onNodeWithText("So startest du den Lauf auf der Uhr").performClick()
+        composeRule.onNodeWithText("LAP startet keine Aufzeichnung auf der Uhr. Wähle dort Aktivitäten → Laufen und öffne LAP Live als Datenseite.")
             .assertIsDisplayed()
+    }
+
+    @Test
+    fun liveButtonNavigatesToGarminReception() {
+        var started = false
+        composeRule.setContent {
+            RunTheme(AppTheme.OLIVE) {
+                TrainingDetailsScreen(
+                    run = sampleRun(),
+                    onBack = {},
+                    onOpenPlan = {},
+                    onStartGarminLive = { started = true }
+                )
+            }
+        }
+
+        composeRule.onNodeWithText("Live-Begleitung starten").performClick()
+        assertTrue(started)
     }
 
     @Test
@@ -56,7 +82,7 @@ class TrainingDetailsScreenTest {
         optional = false,
         steps = listOf(
             RunStep("Einlaufen", 10),
-            RunStep("Hauptteil", 30),
+            RunStep("Hauptteil", 30, 2, 4, "Sprechtempo"),
             RunStep("Auslaufen", 10)
         )
     )

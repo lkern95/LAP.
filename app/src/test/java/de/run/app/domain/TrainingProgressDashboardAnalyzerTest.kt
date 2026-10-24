@@ -58,6 +58,7 @@ class TrainingProgressDashboardAnalyzerTest {
         assertEquals(3, result.runCount)
         assertEquals(10_000.0, result.longestRecentRunMeters!!, 0.0)
         assertEquals(400L, result.averagePaceSecondsPerKilometer)
+        assertEquals(12, result.weeklyLongestRunMeters.size)
         assertEquals(12, result.chartBuckets.size)
         assertNull(result.previousDistanceMeters)
     }

@@ -1,6 +1,7 @@
 package de.run.app.domain
 
 import de.run.app.domain.model.Workout
+import de.run.app.domain.model.isRunning
 import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.YearMonth
@@ -43,7 +44,7 @@ class TrainingProgressDashboardAnalyzer {
         today: LocalDate,
         zone: ZoneId = ZoneId.systemDefault()
     ): TrainingProgressDashboard {
-        val dated = workouts.map { workout ->
+        val dated = workouts.filter(Workout::isRunning).map { workout ->
             workout to java.time.Instant.ofEpochMilli(workout.startedAtMillis).atZone(zone).toLocalDate()
         }.filter { (_, date) -> !date.isAfter(today) }
         val currentStart = periodStart(period, dated, today)
@@ -149,7 +150,7 @@ class TrainingProgressDashboardAnalyzer {
         today: LocalDate
     ): Triple<List<Double>, List<Double>, List<Long?>> {
         val currentWeek = today.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
-        val weeks = (7 downTo 0).map { currentWeek.minusWeeks(it.toLong()) }
+        val weeks = (11 downTo 0).map { currentWeek.minusWeeks(it.toLong()) }
         val runs = weeks.map { start ->
             dated.filter { (_, date) -> !date.isBefore(start) && date.isBefore(start.plusWeeks(1)) }
         }

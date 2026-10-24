@@ -3,6 +3,7 @@ package de.run.app.domain
 import de.run.app.domain.model.TrainingGoal
 import de.run.app.domain.model.TrainingGoalStatus
 import de.run.app.domain.model.Workout
+import de.run.app.domain.model.isRunning
 import java.time.Instant
 import java.time.ZoneId
 
@@ -16,6 +17,7 @@ class TrainingGoalCandidateSelector {
         }
 
         return workouts.asSequence()
+            .filter(Workout::isRunning)
             .filter { it.sourceId != goal.lastPromptedWorkoutId }
             .filter { workout ->
                 Instant.ofEpochMilli(workout.startedAtMillis).atZone(ZoneId.systemDefault()).toLocalDate() == goal.raceDate

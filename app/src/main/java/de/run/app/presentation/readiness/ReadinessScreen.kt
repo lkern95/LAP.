@@ -52,6 +52,8 @@ import de.run.app.domain.model.HealthMetric
 import de.run.app.domain.model.HealthMetricAvailability
 import de.run.app.domain.model.ReadinessFacts
 import de.run.app.domain.model.Workout
+import de.run.app.domain.TrainingFeedback
+import de.run.app.presentation.components.PersonalTrainingFeedbackCard
 import java.time.Duration
 
 @Composable
@@ -60,7 +62,8 @@ fun ReadinessScreen(
     debugDemoMode: DebugDemoModeController?,
     onRequestAccess: () -> Unit,
     onDemoModeChanged: (Boolean) -> Unit,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    trainingFeedback: TrainingFeedback? = null
 ) {
     val state by viewModel.state.collectAsState()
     val isDemo by (debugDemoMode?.enabled ?: kotlinx.coroutines.flow.MutableStateFlow(false)).collectAsState()
@@ -72,7 +75,13 @@ fun ReadinessScreen(
         ) {
             ReadinessMeter(state)
             ReadinessFactsCard(state)
-            ReadinessGuidanceCard(state)
+            if (state.hasWorkoutAccess == true && !state.workoutsUnavailable && !state.workoutsFailed) {
+                state.weeklyTrainingComparison?.let { comparison ->
+                    WeeklyTrainingComparisonCard(comparison)
+                }
+            }
+            if (trainingFeedback != null) PersonalTrainingFeedbackCard(trainingFeedback)
+            else ReadinessGuidanceCard(state)
             ReadinessNotice(state, viewModel::refresh, onRequestAccess)
             if (BuildConfig.DEBUG && debugDemoMode != null) {
                 DemoDataControl(isDemo) { onDemoModeChanged(!isDemo) }
@@ -83,6 +92,55 @@ fun ReadinessScreen(
         }
     }
 }
+
+@Composable
+private fun WeeklyTrainingComparisonCard(comparison: de.run.app.domain.WeeklyTrainingComparison) {
+    val dateFormat = java.time.format.DateTimeFormatter.ofPattern("d. MMM", java.util.Locale.GERMAN)
+    fun period(stats: de.run.app.domain.TrainingWeekStats): String =
+        "${stats.startsOn.format(dateFormat)}–${stats.startsOn.plusDays(6).format(dateFormat)}"
+    fun summary(stats: de.run.app.domain.TrainingWeekStats): String {
+        val distance = stats.distanceMeters?.let { " · ${String.format(java.util.Locale.GERMANY, "%.1f", it / 1_000.0)} km" }
+            ?: if (stats.runCount > 0) " · Strecke teils nicht erfasst" else ""
+        val duration = if (stats.runCount > 0) " · ${stats.durationSeconds / 60} Min." else ""
+        return "${stats.runCount} absolvierte Läufe$distance$duration"
+    }
+    Card(
+        Modifier.fillMaxWidth().padding(top = 12.dp),
+        shape = RoundedCornerShape(18.dp),
+        colors = androidx.compose.material3.CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)
+    ) {
+        Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) {
+            Text("Deine letzten Trainingswochen", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+            Text("Letzte Woche (${period(comparison.current)}): ${summary(comparison.current)}", style = MaterialTheme.typography.bodySmall)
+            Text("Davor (${period(comparison.previous)}): ${summary(comparison.previous)}", style = MaterialTheme.typography.bodySmall)
+            val previousPace = comparison.previous.comparablePaceSecondsPerKilometer
+            val currentPace = comparison.current.comparablePaceSecondsPerKilometer
+            if (previousPace != null && currentPace != null) {
+                Text(
+                    "Vergleichbare Pace: ${formatReadinessPace(previousPace)} → ${formatReadinessPace(currentPace)} min/km " +
+                        "(${comparison.previous.comparablePaceRunCount} → ${comparison.current.comparablePaceRunCount} Läufe)",
+                    style = MaterialTheme.typography.bodySmall
+                )
+            } else {
+                Text("Pacevergleich: für beide Wochen fehlen ausreichend vergleichbare Strecken.", style = MaterialTheme.typography.bodySmall)
+            }
+            val previousHeartRate = comparison.previous.averageHeartRateBpm
+            val currentHeartRate = comparison.current.averageHeartRateBpm
+            if (previousHeartRate != null && currentHeartRate != null) {
+                Text(
+                    "Puls bei vergleichbaren Strecken: $previousHeartRate → $currentHeartRate bpm " +
+                        "(${comparison.previous.heartRateRunCount} → ${comparison.current.heartRateRunCount} Läufe)",
+                    style = MaterialTheme.typography.bodySmall
+                )
+            } else {
+                Text("Pulsvergleich: keine vergleichbaren Messwerte in beiden Wochen.", style = MaterialTheme.typography.bodySmall)
+            }
+        }
+    }
+}
+
+private fun formatReadinessPace(secondsPerKilometer: Long): String =
+    "%d:%02d".format(java.util.Locale.GERMANY, secondsPerKilometer / 60, secondsPerKilometer % 60)
 
 @Composable
 private fun ReadinessHeader(onBack: () -> Unit, isDemo: Boolean) {

@@ -8,7 +8,7 @@ import org.junit.Test
 class WorkoutDuplicateMatcherTest {
     @Test
     fun matchesSameRunAcrossFitAndHealthConnectAndKeepsFeedback() {
-        val healthConnect = workout("garmin:hc-1", "Garmin Connect", 10_000L, 3_000.0)
+        val healthConnect = workout("com.garmin.android.apps.connectmobile:hc-1", "Garmin Connect", 10_000L, 3_000.0)
         val fit = workout("fit:1", "FIT-Datei", 20_000L, 3_020.0)
         val existing = healthConnect.copy(perceivedEffort = 6, feedbackRecordedAtMillis = 99L)
 
@@ -18,7 +18,7 @@ class WorkoutDuplicateMatcherTest {
         assertEquals("Garmin Connect", merged.sourceName)
         assertEquals(6, merged.perceivedEffort)
         assertEquals(99L, merged.feedbackRecordedAtMillis)
-        assertEquals(3_020.0, merged.distanceMeters!!, 0.0)
+        assertEquals(3_000.0, merged.distanceMeters!!, 0.0)
     }
 
     @Test

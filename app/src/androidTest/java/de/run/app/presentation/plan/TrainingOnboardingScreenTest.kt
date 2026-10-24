@@ -116,7 +116,7 @@ class TrainingOnboardingScreenTest {
         }
         assert(composeRule.onAllNodesWithContentDescription("Import über Health Connect erfolgreich").fetchSemanticsNodes().isEmpty())
         composeRule.onNodeWithText("Garmin verbinden").performScrollTo().performClick()
-        composeRule.onNodeWithContentDescription("Import über Health Connect erfolgreich").assertIsDisplayed()
+        composeRule.onNodeWithContentDescription("Health-Connect-Prüfung erfolgreich").assertIsDisplayed()
     }
 
     @Test
@@ -137,9 +137,7 @@ class TrainingOnboardingScreenTest {
             }
         }
 
-        composeRule.onNodeWithText("Garmin Connect gibt Läufe auf diesem Android nicht direkt an Health Connect weiter.", substring = true)
-            .assertIsDisplayed()
-        composeRule.onNodeWithText("Du kannst Health Sync als lokale Brücke zu Health Connect nutzen oder FIT-Dateien später unter Fortschritt importieren.", substring = true)
+        composeRule.onNodeWithText("Läufe kannst du später auf der Garmin-Seite über Garmin Connect abgleichen", substring = true)
             .assertIsDisplayed()
         assert(composeRule.onAllNodesWithText("Garmin verbinden").fetchSemanticsNodes().isEmpty())
     }

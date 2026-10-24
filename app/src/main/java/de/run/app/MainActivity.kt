@@ -4,12 +4,15 @@ import android.os.Bundle
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
 import de.run.app.data.healthconnect.HealthConnectPermissionCoordinator
+import de.run.app.application.EvaluateImportedWorkouts
+import de.run.app.application.EvaluateWorkoutTrainingFeedback
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import de.run.app.presentation.RunApp
 import de.run.app.presentation.history.WorkoutHistoryViewModel
 import de.run.app.presentation.plan.PlanViewModel
 import de.run.app.presentation.settings.AppearanceViewModel
+import de.run.app.presentation.settings.GarminConnectViewModel
 import de.run.app.presentation.settings.AppBackupViewModel
 import de.run.app.presentation.strength.StrengthViewModel
 import de.run.app.presentation.strength.StrengthViewModelFactory
@@ -29,11 +32,17 @@ class MainActivity : androidx.activity.ComponentActivity() {
     private val appearanceViewModel: AppearanceViewModel by viewModels {
         AppearanceViewModelFactory(appContainer)
     }
+    private val garminConnectViewModel: GarminConnectViewModel by viewModels {
+        GarminConnectViewModelFactory(appContainer)
+    }
     private val backupViewModel: AppBackupViewModel by viewModels {
         AppBackupViewModelFactory(appContainer.backupRepository)
     }
     private val strengthViewModel: StrengthViewModel by viewModels {
-        StrengthViewModelFactory(appContainer.strengthRepository)
+        StrengthViewModelFactory(
+            appContainer.strengthSessionRepository,
+            appContainer.strengthCatalogRepository
+        )
     }
     private val readinessViewModel: ReadinessViewModel by viewModels {
         ReadinessViewModelFactory(
@@ -59,6 +68,7 @@ class MainActivity : androidx.activity.ComponentActivity() {
                 planViewModel = planViewModel,
                 workoutHistoryViewModel = workoutHistoryViewModel,
                 appearanceViewModel = appearanceViewModel,
+                garminConnectViewModel = garminConnectViewModel,
                 backupViewModel = backupViewModel,
                 strengthViewModel = strengthViewModel,
                 readinessViewModel = readinessViewModel,
@@ -94,7 +104,15 @@ private class WorkoutHistoryViewModelFactory(private val container: AppContainer
     override fun <T : ViewModel> create(modelClass: Class<T>): T =
         WorkoutHistoryViewModel(
             container.workoutRepository,
-            importFitActivity = de.run.app.application.ImportFitActivity(container.fitActivityImportRepository)
+            importFitActivity = de.run.app.application.ImportFitActivity(container.fitActivityImportRepository),
+            profiles = container.profileRepository,
+            goals = container.goalRepository,
+            evaluateImportedWorkouts = EvaluateImportedWorkouts(
+                container.workoutRepository,
+                container.profileRepository,
+                container.goalRepository
+            ),
+            evaluateTrainingFeedback = EvaluateWorkoutTrainingFeedback(container.planBuilder)
         ) as T
 }
 
@@ -102,6 +120,12 @@ private class AppearanceViewModelFactory(private val container: AppContainer) : 
     @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel> create(modelClass: Class<T>): T =
         AppearanceViewModel(container.themeRepository) as T
+}
+
+private class GarminConnectViewModelFactory(private val container: AppContainer) : ViewModelProvider.Factory {
+    @Suppress("UNCHECKED_CAST")
+    override fun <T : ViewModel> create(modelClass: Class<T>): T =
+        GarminConnectViewModel(container.garminConnectRepository) as T
 }
 
 private class AppBackupViewModelFactory(

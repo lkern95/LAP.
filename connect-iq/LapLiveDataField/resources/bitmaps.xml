@@ -1,0 +1,4 @@
+<resources xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://developer.garmin.com/downloads/connect-iq/resources.xsd">
+    <bitmap id="LauncherIcon" filename="images/lap-live-icon.png" />
+    <bitmap id="WatchBackground" filename="images/lap-watch-turtle.png" />
+</resources>

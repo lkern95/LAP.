@@ -35,6 +35,7 @@ class RunNavigationTest {
             listOf(
                 "Plan einrichten",
                 "Dein Training",
+                "Dein nächstes Training",
                 "Deine nächste Einheit",
                 "Heute Zeit zum Trainieren?"
             ).any { label ->
@@ -107,7 +108,8 @@ class RunNavigationTest {
 
     @Test
     fun themeCanBeChangedFromProfile() {
-        composeRule.onNodeWithText("Ich").performClick()
+        composeRule.onNodeWithText("Profil").performClick()
+        composeRule.onNodeWithText("Farbstil").performScrollTo().performClick()
         composeRule.onNodeWithText("Farbstil").performScrollTo().assertIsDisplayed()
         composeRule.onNodeWithText("Olive").performScrollTo().performClick()
         composeRule.onNodeWithText("Olive").assertIsSelected()
@@ -123,32 +125,75 @@ class RunNavigationTest {
 
     @Test
     fun profileShowsLocalBackupAndRestoreActions() {
-        composeRule.onNodeWithText("Ich").performClick()
+        composeRule.onNodeWithText("Profil").performClick()
 
-        composeRule.onNodeWithText("Sicherung").performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithText("Sicherung").performScrollTo().performClick()
+        composeRule.onNodeWithText("Sicherung").assertIsDisplayed()
         composeRule.onNodeWithText("Sicherung erstellen").performScrollTo().assertIsDisplayed()
         composeRule.onNodeWithText("Sicherung wiederherstellen").performScrollTo().assertIsDisplayed()
     }
 
     @Test
-    fun strengthLibraryCanBeOpenedBeforeSettingUpPlan() {
+    fun trainingSettingsAreDirectlyAvailableUnderProfile() {
         composeRule.onNodeWithText("Plan").performClick()
         composeRule.waitUntil(timeoutMillis = 5_000) {
-            composeRule.onAllNodesWithText("Kraftübungen ansehen")
-                .fetchSemanticsNodes().isNotEmpty()
+            listOf("Dein Halbmarathon", "Dein Trainingsplan", "Wochenplan").any { label ->
+                composeRule.onAllNodesWithText(label).fetchSemanticsNodes().isNotEmpty()
+            }
         }
+        listOf("Ziel bearbeiten", "Kraftübungen ansehen", "Verfügbarkeit ändern")
+            .forEach { label -> assert(composeRule.onAllNodesWithText(label).fetchSemanticsNodes().isEmpty()) }
+
+        composeRule.onNodeWithText("Profil").performClick()
+        composeRule.onNodeWithText("TRAINING").performScrollTo().assertIsDisplayed()
+        assert(composeRule.onAllNodesWithText("Ziel bearbeiten").fetchSemanticsNodes().isEmpty())
+        composeRule.onNodeWithText("TRAINING").performClick()
+        listOf("Ziel bearbeiten", "Kraftübungen ansehen", "Verfügbarkeit ändern")
+            .forEach { label -> composeRule.onNodeWithText(label).performScrollTo().assertIsDisplayed() }
+        composeRule.onNodeWithText("TRAINING").performClick()
+        assert(composeRule.onAllNodesWithText("Ziel bearbeiten").fetchSemanticsNodes().isEmpty())
+        composeRule.onNodeWithText("Farbstil").performScrollTo().assertIsDisplayed()
+        assert(composeRule.onAllNodesWithText("Olive").fetchSemanticsNodes().isEmpty())
+        composeRule.onNodeWithText("Farbstil").performClick()
+        composeRule.onNodeWithText("Olive").performScrollTo().assertIsDisplayed()
+    }
+
+    @Test
+    fun strengthLibraryCanBeOpenedBeforeSettingUpPlan() {
+        composeRule.onNodeWithText("Profil").performClick()
+        composeRule.onNodeWithText("TRAINING").performScrollTo().performClick()
         composeRule.onNodeWithText("Kraftübungen ansehen").performScrollTo().performClick()
         composeRule.waitUntil(timeoutMillis = 5_000) {
             composeRule.onAllNodesWithText("Kraft für deinen Lauf")
                 .fetchSemanticsNodes().isNotEmpty()
         }
-        composeRule.onNodeWithText("Kraft für deinen Lauf").assertIsDisplayed()
+        composeRule.onAllNodesWithText("Kraft für deinen Lauf").get(0).assertIsDisplayed()
+        composeRule.onNodeWithText("Knie & Hüftstabilität").assertIsDisplayed()
+        assertTrainingActionIsDisplayed()
+    }
+
+    @Test
+    fun strengthSessionShowsJsonExerciseAndKeepsProgressWhenReturningFromDetail() {
+        composeRule.onNodeWithText("Profil").performClick()
+        composeRule.onNodeWithText("TRAINING").performScrollTo().performClick()
+        composeRule.onNodeWithText("Kraftübungen ansehen").performScrollTo().performClick()
+        performTrainingAction()
+        composeRule.onNodeWithText("Kniebeuge mit Miniband").assertIsDisplayed()
+        composeRule.onNodeWithText("Satz 1 starten").performClick()
+        composeRule.onNodeWithText("Satz 1 abschließen").assertIsDisplayed()
+
+        composeRule.activity.onBackPressedDispatcher.onBackPressed()
+        composeRule.onNodeWithText("Training fortsetzen", substring = true).assertIsDisplayed()
+
+        composeRule.onNodeWithText("Training fortsetzen", substring = true).performClick()
+        composeRule.onNodeWithText("Kniebeuge mit Miniband").assertIsDisplayed()
+        composeRule.onNodeWithText("Satz 1 abschließen").assertIsDisplayed()
     }
 
     @Test
     fun garminScreenShowsWatchAndImportSteps() {
-        composeRule.onNodeWithText("Ich").performClick()
-        composeRule.onNodeWithText("Läufe und Garmin Connect").performClick()
+        composeRule.onNodeWithText("Profil").performClick()
+        composeRule.onNodeWithText("Garmin Connect").performClick()
 
         composeRule.onNodeWithText("Garmin").assertIsDisplayed()
         composeRule.onNodeWithText("Aktivitäten").assertIsDisplayed()
@@ -157,36 +202,53 @@ class RunNavigationTest {
         composeRule.onNodeWithContentDescription("Schwarze Garmin-Uhr").assertIsDisplayed()
     }
 
+    private fun assertTrainingActionIsDisplayed() {
+        val hasStart = composeRule.onAllNodesWithText("Training starten", substring = true)
+            .fetchSemanticsNodes().isNotEmpty()
+        val hasResume = composeRule.onAllNodesWithText("Training fortsetzen", substring = true)
+            .fetchSemanticsNodes().isNotEmpty()
+        assert(hasStart || hasResume)
+    }
+
+    private fun performTrainingAction() {
+        val hasResume = composeRule.onAllNodesWithText("Training fortsetzen", substring = true)
+            .fetchSemanticsNodes().isNotEmpty()
+        val label = if (hasResume) "Training fortsetzen" else "Training starten"
+        composeRule.onNodeWithText(label, substring = true).performClick()
+    }
+
     @Test
     fun garminBackArrowReturnsToProfileAndKeepsTheme() {
-        composeRule.onNodeWithText("Ich").performClick()
+        composeRule.onNodeWithText("Profil").performClick()
+        composeRule.onNodeWithText("Farbstil").performScrollTo().performClick()
         composeRule.onNodeWithText("Olive").performScrollTo().performClick()
-        composeRule.onNodeWithText("Läufe und Garmin Connect").performClick()
+        composeRule.onNodeWithText("Garmin Connect").performClick()
 
         composeRule.onNodeWithContentDescription("Zurück zum Profil").performClick()
-        composeRule.onNodeWithText("Läufe und Garmin Connect").assertIsDisplayed()
+        composeRule.onNodeWithText("Garmin Connect").assertIsDisplayed()
         composeRule.onNodeWithText("Olive").performScrollTo().assertIsSelected()
     }
 
     @Test
     fun profileTabReturnsFromGarminTrainingPlansWithoutLosingProfileState() {
-        composeRule.onNodeWithText("Ich").performClick()
+        composeRule.onNodeWithText("Profil").performClick()
+        composeRule.onNodeWithText("Farbstil").performScrollTo().performClick()
         composeRule.onNodeWithText("Olive").performScrollTo().performClick()
-        composeRule.onNodeWithText("Läufe und Garmin Connect").performClick()
+        composeRule.onNodeWithText("Garmin Connect").performClick()
         composeRule.onNodeWithText("Trainingspläne").performScrollTo().performClick()
         composeRule.onNodeWithText("Plan").assertIsSelected()
 
-        composeRule.onNodeWithText("Ich").performClick()
+        composeRule.onNodeWithText("Profil").performClick()
 
-        composeRule.onNodeWithText("Läufe und Garmin Connect").assertIsDisplayed()
+        composeRule.onNodeWithText("Garmin Connect").assertIsDisplayed()
         composeRule.onNodeWithText("Olive").performScrollTo().assertIsSelected()
-        composeRule.onAllNodesWithText("Ich").get(1).assertIsSelected()
+        composeRule.onAllNodesWithText("Profil").get(1).assertIsSelected()
     }
 
     @Test
     fun androidBackGestureReturnsFromTrainingPlanThroughGarminToProfile() {
-        composeRule.onNodeWithText("Ich").performClick()
-        composeRule.onNodeWithText("Läufe und Garmin Connect").performClick()
+        composeRule.onNodeWithText("Profil").performClick()
+        composeRule.onNodeWithText("Garmin Connect").performClick()
         composeRule.onNodeWithText("Trainingspläne").performScrollTo().performClick()
         composeRule.onNodeWithText("Plan").assertIsSelected()
 
@@ -199,16 +261,16 @@ class RunNavigationTest {
         performBackGestureFromEdge(fromRight = false)
 
         composeRule.waitUntil(timeoutMillis = 5_000) {
-            composeRule.onAllNodesWithText("Läufe und Garmin Connect")
+            composeRule.onAllNodesWithText("Garmin Connect")
                 .fetchSemanticsNodes().isNotEmpty()
         }
-        composeRule.onAllNodesWithText("Ich").get(1).assertIsSelected()
+        composeRule.onAllNodesWithText("Profil").get(1).assertIsSelected()
     }
 
     @Test
     fun androidBackDispatcherReturnsFromTrainingPlanThroughGarminToProfile() {
-        composeRule.onNodeWithText("Ich").performClick()
-        composeRule.onNodeWithText("Läufe und Garmin Connect").performClick()
+        composeRule.onNodeWithText("Profil").performClick()
+        composeRule.onNodeWithText("Garmin Connect").performClick()
         composeRule.onNodeWithText("Trainingspläne").performScrollTo().performClick()
         composeRule.onNodeWithText("Plan").assertIsSelected()
 
@@ -219,16 +281,16 @@ class RunNavigationTest {
         }
         composeRule.activity.onBackPressedDispatcher.onBackPressed()
         composeRule.waitUntil(timeoutMillis = 5_000) {
-            composeRule.onAllNodesWithText("Läufe und Garmin Connect")
+            composeRule.onAllNodesWithText("Garmin Connect")
                 .fetchSemanticsNodes().isNotEmpty()
         }
-        composeRule.onAllNodesWithText("Ich").get(1).assertIsSelected()
+        composeRule.onAllNodesWithText("Profil").get(1).assertIsSelected()
     }
 
     @Test
     fun garminActivityRowOpensRunHistory() {
-        composeRule.onNodeWithText("Ich").performClick()
-        composeRule.onNodeWithText("Läufe und Garmin Connect").performClick()
+        composeRule.onNodeWithText("Profil").performClick()
+        composeRule.onNodeWithText("Garmin Connect").performClick()
         composeRule.onNodeWithText("Aktivitäten").performScrollTo().performClick()
 
         composeRule.onNodeWithText("Dein Fortschritt").assertIsDisplayed()
@@ -236,8 +298,8 @@ class RunNavigationTest {
 
     @Test
     fun garminPlanRowOpensTrainingPlan() {
-        composeRule.onNodeWithText("Ich").performClick()
-        composeRule.onNodeWithText("Läufe und Garmin Connect").performClick()
+        composeRule.onNodeWithText("Profil").performClick()
+        composeRule.onNodeWithText("Garmin Connect").performClick()
         composeRule.onNodeWithText("Trainingspläne").performScrollTo().performClick()
 
         composeRule.onNodeWithText("Plan").assertIsSelected()
@@ -258,14 +320,32 @@ class RunNavigationTest {
         composeRule.onAllNodesWithText("Demodaten").get(0).assertIsDisplayed()
         composeRule.onNodeWithText("7 Std. 48 Min.").performScrollTo().assertIsDisplayed()
         composeRule.onNodeWithText("3 Läufe · 21,1 km").performScrollTo().assertIsDisplayed()
-        composeRule.onNodeWithText("Dein Feedback").assertIsDisplayed()
+        composeRule.onNodeWithText("Deine letzten Trainingswochen").performScrollTo().assertIsDisplayed()
+        composeRule.onAllNodesWithText("3 absolvierte Läufe", substring = true)[0].performScrollTo().assertIsDisplayed()
+        val personalFeedbackTitle = "War das Training gut?"
+        if (composeRule.onAllNodesWithText(personalFeedbackTitle).fetchSemanticsNodes().isNotEmpty()) {
+            composeRule.onNodeWithText(personalFeedbackTitle).performScrollTo().assertIsDisplayed()
+            assert(composeRule.onAllNodesWithText("Bin ich auf Kurs?").fetchSemanticsNodes().isEmpty())
+        } else {
+            composeRule.onNodeWithText("Dein Feedback").performScrollTo().assertIsDisplayed()
+        }
         composeRule.onNodeWithText("Alles passt").performClick()
-        composeRule.onNodeWithText("Ich").performClick()
-        composeRule.onNodeWithText("Läufe und Garmin Connect").performClick()
+        composeRule.onNodeWithText("Profil").performClick()
+        composeRule.onNodeWithText("Garmin Connect").performClick()
         composeRule.onNodeWithText("Demoverbindung mit Testdaten").performScrollTo().assertIsDisplayed()
-        composeRule.onNodeWithText("Heute").performClick()
-        composeRule.onNodeWithText("Deine Trainingswerte").performClick()
-        composeRule.onNodeWithText("Demodaten ausschalten").performClick()
+        composeRule.onNodeWithText("Gesundheitsdaten").performScrollTo().performClick()
+        composeRule.waitUntil(timeoutMillis = 5_000) {
+            composeRule.onAllNodesWithText("Erholung").fetchSemanticsNodes().isNotEmpty()
+        }
+        composeRule.waitUntil(timeoutMillis = 5_000) {
+            composeRule.onAllNodesWithText("Demodaten ausschalten").fetchSemanticsNodes().isNotEmpty() ||
+                composeRule.onAllNodesWithText("Demodaten einschalten").fetchSemanticsNodes().isNotEmpty()
+        }
+        if (composeRule.onAllNodesWithText("Demodaten ausschalten").fetchSemanticsNodes().isNotEmpty()) {
+            composeRule.onNodeWithText("Demodaten ausschalten").performScrollTo().performClick()
+        } else {
+            composeRule.onNodeWithText("Demodaten einschalten").performScrollTo().assertIsDisplayed()
+        }
     }
 
     private fun performBackGestureFromEdge(fromRight: Boolean) {

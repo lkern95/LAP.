@@ -4,6 +4,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import de.run.app.domain.ReadinessFactsAnalyzer
 import de.run.app.domain.ReadinessGuidanceAnalyzer
+import de.run.app.domain.WeeklyTrainingComparison
+import de.run.app.domain.WeeklyTrainingComparisonAnalyzer
 import de.run.app.domain.model.HealthMetricAvailability
 import de.run.app.domain.model.ReadinessFacts
 import de.run.app.domain.model.ReadinessGuidance
@@ -30,6 +32,7 @@ data class ReadinessUiState(
     val healthReadFailed: Boolean = false,
     val facts: ReadinessFacts? = null,
     val hasWorkoutAccess: Boolean? = null,
+    val weeklyTrainingComparison: WeeklyTrainingComparison? = null,
     val workoutsUnavailable: Boolean = false,
     val workoutsFailed: Boolean = false,
     val isDemo: Boolean = false,
@@ -42,7 +45,8 @@ class ReadinessViewModel(
     private val health: ReadinessHealthRepository,
     profiles: TrainingProfileRepository,
     private val factsAnalyzer: ReadinessFactsAnalyzer = ReadinessFactsAnalyzer(),
-    private val guidanceAnalyzer: ReadinessGuidanceAnalyzer = ReadinessGuidanceAnalyzer()
+    private val guidanceAnalyzer: ReadinessGuidanceAnalyzer = ReadinessGuidanceAnalyzer(),
+    private val weeklyComparisonAnalyzer: WeeklyTrainingComparisonAnalyzer = WeeklyTrainingComparisonAnalyzer()
 ) : ViewModel() {
     private val mutableState = MutableStateFlow(ReadinessUiState())
     val state: StateFlow<ReadinessUiState> = mutableState.asStateFlow()
@@ -99,7 +103,8 @@ class ReadinessViewModel(
 
     private fun updateFacts() {
         mutableState.value = mutableState.value.copy(
-            facts = factsAnalyzer.analyze(recentWorkouts, profile, Instant.now())
+            facts = factsAnalyzer.analyze(recentWorkouts, profile, Instant.now()),
+            weeklyTrainingComparison = weeklyComparisonAnalyzer.analyze(recentWorkouts, java.time.LocalDate.now())
         )
         mutableState.value = mutableState.value.copy(guidance = guidanceAnalyzer.analyze(
             facts = mutableState.value.facts,

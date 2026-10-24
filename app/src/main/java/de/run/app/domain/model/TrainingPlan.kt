@@ -74,15 +74,47 @@ data class TrainingProfile(
     val planMode: TrainingPlanMode = TrainingPlanMode.RACE
 )
 
+enum class TrainingType { EASY, LONG_EASY, RECOVERY }
+
+data class PaceTargetRange(
+    val slowerSecondsPerKm: Int,
+    val fasterSecondsPerKm: Int
+) {
+    init {
+        require(slowerSecondsPerKm > 0 && fasterSecondsPerKm > 0)
+        require(fasterSecondsPerKm <= slowerSecondsPerKm)
+    }
+}
+
+data class RunPrescription(
+    val paceRange: PaceTargetRange? = null,
+    val observedPaceRange: PaceTargetRange? = null,
+    val heartRateRangeBpm: IntRange? = null,
+    val effortMinimum: Int = 2,
+    val effortMaximum: Int = 4,
+    val effortCue: String = "Im Sprechtempo: ganze Sätze sollten möglich sein.",
+    val rationale: String = "Konservative, lockere Ausdauerbelastung."
+)
+
 data class RunStep(
     val name: String,
-    val minutes: Int
+    val minutes: Int,
+    val effortMinimum: Int? = null,
+    val effortMaximum: Int? = null,
+    val effortCue: String? = null
 )
+
+fun RunStep.paceTarget(prescription: RunPrescription): PaceTargetRange? =
+    prescription.paceRange?.takeIf { name.contains("laufen", ignoreCase = true) && (effortMinimum ?: 0) >= 2 }
 
 data class PlannedRun(
     val title: String,
     val optional: Boolean,
-    val steps: List<RunStep>
+    val steps: List<RunStep>,
+    val trainingId: String? = null,
+    val scheduledDate: LocalDate? = null,
+    val trainingType: TrainingType = TrainingType.EASY,
+    val prescription: RunPrescription = RunPrescription()
 ) {
     val totalMinutes: Int
         get() = steps.sumOf(RunStep::minutes)
@@ -102,7 +134,29 @@ data class TrainingWeek(
         get() = runs.count { !it.optional }
 }
 
-data class ScheduledRun(val day: DayOfWeek, val run: PlannedRun)
+data class ScheduledRun(
+    val day: DayOfWeek,
+    val run: PlannedRun,
+    val scheduledDate: LocalDate? = run.scheduledDate
+)
+
+enum class PlannedRunMatchType { SCHEDULED, EXTRA, AMBIGUOUS }
+
+enum class PlannedRunAssessment { WELL_MATCHED, SOME_DEVIATION, HIGHER_LOAD, NOT_ASSESSABLE }
+
+data class WorkoutPlanMatch(
+    val type: PlannedRunMatchType,
+    val trainingId: String? = null,
+    val scheduledDate: LocalDate? = null,
+    val plannedTitle: String? = null,
+    val plannedDurationMinutes: Int? = null,
+    val paceSlowerSecondsPerKm: Int? = null,
+    val paceFasterSecondsPerKm: Int? = null,
+    val effortMinimum: Int? = null,
+    val effortMaximum: Int? = null,
+    val assessment: PlannedRunAssessment? = null,
+    val rationale: String? = null
+)
 
 enum class PlanStatus {
     READY,
@@ -126,13 +180,16 @@ enum class PlanAdjustment {
     REPEAT_WEEK,
     RETURN_GENTLY,
     REPEAT_AFTER_HIGH_EFFORT,
-    REVIEW_REPORTED_SYMPTOMS
+    REVIEW_REPORTED_SYMPTOMS,
+    RECOVER_AFTER_HIGH_LOAD,
+    HOLD_AFTER_SLOWING
 }
 
 data class TrainingProgress(
     val runsLastFourWeeks: Int,
     val minutesLastFourWeeks: Int,
     val distanceMetersLastFourWeeks: Double,
+    val longestRunMinutesLastFourWeeks: Int,
     val longestRunMinutesLastSixteenWeeks: Int,
     val runsPreviousWeek: Int,
     val lastRunDate: LocalDate?,

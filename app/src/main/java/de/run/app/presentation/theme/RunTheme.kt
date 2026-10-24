@@ -4,6 +4,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.remember
 import androidx.compose.ui.graphics.Color
 import de.run.app.domain.model.AppTheme
@@ -95,5 +96,7 @@ fun RunTheme(theme: AppTheme, content: @Composable () -> Unit) {
             AppTheme.LIGHT -> LightScheme
         }
     }
-    MaterialTheme(colorScheme = colors, content = content)
+    CompositionLocalProvider(LocalCoachArtworkStyle provides coachArtworkStyle(theme)) {
+        MaterialTheme(colorScheme = colors, content = content)
+    }
 }

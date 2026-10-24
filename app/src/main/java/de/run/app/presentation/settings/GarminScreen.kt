@@ -1,6 +1,8 @@
 package de.run.app.presentation.settings
 
 import android.os.Build
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.tween
@@ -24,10 +26,12 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -49,6 +53,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.DpSize
 import de.run.app.R
 import de.run.app.domain.model.PlanStatus
@@ -56,6 +61,7 @@ import de.run.app.domain.GarminConnectHealthSharing
 import de.run.app.domain.model.Workout
 import de.run.app.presentation.history.WorkoutHistoryUiState
 import de.run.app.presentation.history.WorkoutHistoryViewModel
+import de.run.app.presentation.settings.GarminConnectViewModel
 import de.run.app.presentation.plan.PlanUiState
 import de.run.app.presentation.plan.PlanViewModel
 import kotlinx.coroutines.delay
@@ -67,12 +73,13 @@ import java.util.Locale
 @Composable
 fun GarminScreen(
     workoutHistoryViewModel: WorkoutHistoryViewModel,
+    garminConnectViewModel: GarminConnectViewModel,
     isDemo: Boolean = false,
     planViewModel: PlanViewModel,
     onOpenProgress: () -> Unit,
+    onOpenHealthData: () -> Unit,
     onOpenTrainingPlan: () -> Unit,
     onRequestWorkoutAccess: () -> Unit,
-    onSetupHealthSync: () -> Unit,
     onInstallGarminConnect: () -> Unit,
     onInstallHealthConnect: () -> Unit,
     onBack: () -> Unit,
@@ -80,10 +87,10 @@ fun GarminScreen(
 ) {
     val context = LocalContext.current
     val garminConnectInstalled = remember(context) { context.packageManager.getLaunchIntentForPackage(GARMIN_CONNECT_PACKAGE) != null }
-    val healthSyncInstalled = remember(context) { context.packageManager.getLaunchIntentForPackage(HEALTH_SYNC_SOURCE_PACKAGE) != null }
     val healthConnectInstalled = remember(context) { context.packageManager.getLaunchIntentForPackage(HEALTH_CONNECT_PACKAGE) != null }
     val isHuaweiDevice = remember { Build.MANUFACTURER.equals("HUAWEI", ignoreCase = true) }
     val history by workoutHistoryViewModel.state.collectAsState()
+    val directConnect by garminConnectViewModel.state.collectAsState()
     val plan by planViewModel.state.collectAsState()
     var showConnectionCheck by remember { mutableStateOf(true) }
     LaunchedEffect(Unit) {
@@ -91,7 +98,7 @@ fun GarminScreen(
         showConnectionCheck = false
     }
     val importedWorkouts = history.workouts.filter {
-        it.sourceName in setOf(GARMIN_SOURCE_NAME, HEALTH_SYNC_SOURCE_NAME, FIT_SOURCE_NAME)
+        it.sourceName in setOf(GARMIN_SOURCE_NAME, HEALTH_SYNC_SOURCE_NAME, FIT_SOURCE_NAME, GARMIN_BACKUP_SOURCE_NAME)
     }
     val hasGarminActivities = history.isConnectedToGarmin(importedWorkouts)
     val failed = history.accessMessage != null || history.isUnavailable || history.hasError
@@ -99,6 +106,9 @@ fun GarminScreen(
     val displayHistory = history.copy(
         isLoading = !connected && (history.isLoading || showConnectionCheck)
     )
+    val fitFilePicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        uri?.let { workoutHistoryViewModel.importFit(it.toString()) }
+    }
 
     Column(
         Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 20.dp),
@@ -108,7 +118,7 @@ fun GarminScreen(
             if (garminSharingSupported) displayHistory.connectionLabel(hasGarminActivities)
             else if (displayHistory.isLoading) "Verbindung wird geprüft"
             else if (connected) "Laufdaten verfügbar"
-            else "Health Sync einrichten",
+            else "Verbindung prüfen",
             onBack
         )
         if (isDemo) {
@@ -119,31 +129,24 @@ fun GarminScreen(
             )
         }
         GarminWatch(
-            loading = displayHistory.isLoading,
-            connected = connected,
-            failed = failed,
-            onRetrySync = { workoutHistoryViewModel.refresh(surfaceNewGarminRun = true) }
+            loading = displayHistory.isLoading || directConnect.isSyncing,
+            connected = directConnect.isConnected && !directConnect.isSyncing,
+            failed = failed || directConnect.hasSyncError,
+            onRetrySync = garminConnectViewModel::syncAllActivities
         )
         GarminStatuses(
             activities = displayHistory.activityStatus(importedWorkouts, garminSharingSupported),
             health = displayHistory.healthStatus(hasGarminActivities, importedWorkouts, garminSharingSupported),
             plan = plan.trainingPlanStatus(),
             onOpenActivities = onOpenProgress,
-            onOpenHealthData = {
-                when {
-                    !garminSharingSupported -> onOpenProgress()
-                    history.accessMessage != null -> onRequestWorkoutAccess()
-                    history.isUnavailable || history.hasError -> workoutHistoryViewModel.refresh()
-                    else -> onOpenProgress()
-                }
-            },
+            onOpenHealthData = onOpenHealthData,
             onOpenTrainingPlan = onOpenTrainingPlan
         )
         Text(
             if (garminSharingSupported) {
                 "Starte deinen Lauf auf der Uhr unter Aktivitäten → Laufen und synchronisiere danach Garmin Connect."
             } else {
-                "Auf Android 10 teilt Garmin Connect Läufe nicht direkt mit Health Connect. Health Sync kann die Daten übertragen, ist aber eine separate App und kann je nach Verbindung sichere Server für die Übertragung nutzen. Nach der Health-Connect-Freigabe liest LAP die dort verfügbaren Daten. Alternativ kannst du eine FIT-Datei unter Fortschritt importieren."
+                "Auf diesem Android werden Garmin-Läufe nicht direkt über Health Connect geteilt. Du kannst Garmin Connect abgleichen oder weiter unten ein Garmin-Backup beziehungsweise eine Aktivitätsdatei importieren."
             },
             style = MaterialTheme.typography.bodyMedium
         )
@@ -154,12 +157,23 @@ fun GarminScreen(
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
+        directConnect.lastHistorySyncAt?.let { syncedAt ->
+            Text(
+                "Garmin-Verlauf zuletzt abgeglichen: ${syncedAt.atZone(ZoneId.systemDefault()).format(LAST_CHECK_FORMAT)}",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        directConnect.message?.let { Text(it, style = MaterialTheme.typography.bodyMedium) }
         history.lastRefreshMessage?.let { resultMessage ->
-            Text(resultMessage, style = MaterialTheme.typography.bodyMedium)
+            val displayMessage = if (resultMessage == NO_NEW_HEALTH_CONNECT_RUNS && importedWorkouts.isNotEmpty()) {
+                "Health Connect: keine neuen Läufe gefunden."
+            } else resultMessage
+            Text(displayMessage, style = MaterialTheme.typography.bodyMedium)
         }
         if (!garminSharingSupported && importedWorkouts.isEmpty() && history.lastRefreshMessage == "Keine neuen Läufe gefunden") {
             Text(
-                "In Health Connect ist noch kein Lauf aus Health Sync angekommen. Starte die Übertragung in Health Sync und tippe danach erneut auf die Uhr.",
+                "Es wurden noch keine Läufe gefunden. Prüfe die Verbindung oder importiere weiter unten eine Aktivitätsdatei.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -173,7 +187,7 @@ fun GarminScreen(
         }
         if (importedWorkouts.isNotEmpty()) {
             Text(
-                "${importedWorkouts.size} Lauf${if (importedWorkouts.size == 1) "" else "e"} auf diesem Gerät · zuletzt ${importedWorkouts.first().startedAtMillis.formattedWorkoutDate()}",
+                "${importedWorkouts.size} Aktivität${if (importedWorkouts.size == 1) "" else "en"} auf diesem Gerät · zuletzt ${importedWorkouts.first().startedAtMillis.formattedWorkoutDate()}",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -187,16 +201,7 @@ fun GarminScreen(
         }
         if (!garminSharingSupported) {
             Text(
-                "Garmin Connect: ${if (garminConnectInstalled) "installiert" else "nicht gefunden"} · Health Sync: ${if (healthSyncInstalled) "installiert" else "nicht gefunden"} · Health Connect: ${if (healthConnectInstalled) "installiert" else "nicht gefunden"}",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Text(
-                if (healthSyncInstalled) {
-                    "Öffne Health Sync und prüfe Garmin Connect als Quelle sowie Health Connect als Ziel. Health Sync ist eine separate Drittanbieter-App und kann kostenpflichtig sein."
-                } else {
-                    "Health Sync ist eine separate Drittanbieter-App und kann kostenpflichtig sein. LAP sieht Laufdaten erst, wenn sie in Health Connect angekommen sind."
-                },
+                "Garmin Connect: ${if (garminConnectInstalled) "installiert" else "nicht gefunden"} · Health Connect: ${if (healthConnectInstalled) "installiert" else "nicht gefunden"}",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -205,10 +210,6 @@ fun GarminScreen(
             }
             if (!healthConnectInstalled || history.isUnavailable || history.hasError) {
                 OutlinedButton(onClick = onInstallHealthConnect) { Text("Health Connect öffnen") }
-            }
-            OutlinedButton(onClick = onOpenProgress) { Text("FIT-Datei importieren") }
-            OutlinedButton(onClick = onSetupHealthSync) {
-                Text(if (healthSyncInstalled) "Health Sync öffnen" else "Health Sync installieren")
             }
         }
         if (garminSharingSupported) {
@@ -220,7 +221,97 @@ fun GarminScreen(
                 Text(if (history.isLoading) "Laufdaten werden geprüft …" else "Jetzt prüfen")
             }
         }
+        GarminConnectAccountSection(directConnect, garminConnectViewModel)
+        OutlinedButton(
+            onClick = { fitFilePicker.launch(arrayOf("application/zip", "application/octet-stream", "application/vnd.ant.fit", "*/*")) },
+            enabled = !history.isImportingFit,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            if (history.isImportingFit) CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
+            else Text("Garmin-Backup oder Aktivitätsdatei importieren")
+        }
+        history.fitImportMessage?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
         Spacer(Modifier.height(8.dp))
+    }
+}
+
+@Composable
+private fun GarminConnectAccountSection(
+    state: GarminConnectUiState,
+    viewModel: GarminConnectViewModel
+) {
+    var email by remember { mutableStateOf("") }
+    var password by remember { mutableStateOf("") }
+    var mfaCode by remember { mutableStateOf("") }
+
+    Card(Modifier.fillMaxWidth()) {
+        Column(
+            Modifier.fillMaxWidth().padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Text("Garmin Connect direkt verbinden", style = MaterialTheme.typography.titleMedium)
+            Text(
+                "LAP liest Aktivitäten und Originaldateien. Dein Passwort wird nicht gespeichert. Garmin kann diesen privaten Zugriffsweg ändern oder ablehnen.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            when {
+                state.isConnected -> {
+                    Button(onClick = viewModel::syncAllActivities, enabled = !state.isSyncing) {
+                        Text(if (state.isSyncing) "Aktivitäten werden abgeglichen …" else "Synchronisieren")
+                    }
+                    OutlinedButton(onClick = viewModel::disconnect, enabled = !state.isSyncing) {
+                        Text("Verbindung auf diesem Gerät trennen")
+                    }
+                }
+                state.needsMfa -> {
+                    OutlinedTextField(
+                        value = mfaCode,
+                        onValueChange = { mfaCode = it },
+                        label = { Text("Garmin-Sicherheitscode") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Button(onClick = {
+                        val code = mfaCode.toCharArray()
+                        mfaCode = ""
+                        viewModel.submitMfa(code)
+                    }, enabled = !state.isConnecting && mfaCode.isNotBlank()) {
+                        Text(if (state.isConnecting) "Wird geprüft …" else "Code bestätigen")
+                    }
+                }
+                else -> {
+                    OutlinedTextField(
+                        value = email,
+                        onValueChange = { email = it },
+                        label = { Text("Garmin-E-Mail") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    OutlinedTextField(
+                        value = password,
+                        onValueChange = { password = it },
+                        label = { Text("Passwort") },
+                        singleLine = true,
+                        visualTransformation = PasswordVisualTransformation(),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Button(onClick = {
+                        val secret = password.toCharArray()
+                        password = ""
+                        viewModel.connect(email, secret)
+                    }, enabled = !state.isConnecting && email.isNotBlank() && password.isNotEmpty()) {
+                        Text(if (state.isConnecting) "Garmin prüft die Anmeldung …" else "Garmin Connect verbinden")
+                    }
+                }
+            }
+            state.message?.let { Text(it, style = MaterialTheme.typography.bodyMedium) }
+            if (state.originalFitSaved || state.workoutImported || state.trainingPlanUpdated) {
+                Text(if (state.originalFitSaved) "✓ Originaldateien gesichert" else "○ Originaldateien gesichert")
+                Text(if (state.workoutImported) "✓ Aktivitäten importiert" else "○ Aktivitäten importiert")
+                Text(if (state.trainingPlanUpdated) "✓ Trainingsplan aktualisiert" else "○ Trainingsplan aktualisiert")
+            }
+        }
     }
 }
 
@@ -441,9 +532,10 @@ private fun WorkoutHistoryUiState.activityStatus(
     workouts: List<Workout>,
     garminSharingSupported: Boolean
 ): String = when {
-    !garminSharingSupported && workouts.any { it.sourceName == HEALTH_SYNC_SOURCE_NAME } -> "Über Health Sync eingelesen"
+    !garminSharingSupported && workouts.any { it.sourceName == GARMIN_BACKUP_SOURCE_NAME } -> "Garmin-Backup importiert"
     !garminSharingSupported && workouts.any { it.sourceName == FIT_SOURCE_NAME } -> "FIT-Dateien importiert"
-    !garminSharingSupported -> "Health Sync einrichten oder FIT-Datei importieren"
+    !garminSharingSupported && workouts.any { it.sourceName == HEALTH_SYNC_SOURCE_NAME } -> "Frühere importierte Läufe vorhanden"
+    !garminSharingSupported -> "Garmin-Verbindung prüfen oder Datei importieren"
     isLoading -> "Wird geprüft"
     accessMessage != null -> "Freigabe nötig"
     isUnavailable -> "Gerade nicht verfügbar"
@@ -459,7 +551,7 @@ private fun WorkoutHistoryUiState.healthStatus(
     garminSharingSupported: Boolean
 ): String = when {
     !garminSharingSupported && workouts.any { it.averageHeartRateBpm != null } -> "Laufpuls angekommen"
-    !garminSharingSupported && workouts.any { it.sourceName == HEALTH_SYNC_SOURCE_NAME } -> "Laufdaten über Health Sync"
+    !garminSharingSupported && workouts.any { it.sourceName == HEALTH_SYNC_SOURCE_NAME } -> "Importierte Laufdaten vorhanden"
     !garminSharingSupported && workouts.any { it.sourceName == FIT_SOURCE_NAME } -> "Pulsdaten aus FIT-Datei"
     !garminSharingSupported -> "Dein Trainingsplan bleibt nutzbar"
     isLoading -> "Wird geprüft"
@@ -485,6 +577,8 @@ private const val HEALTH_SYNC_SOURCE_PACKAGE = "nl.appyhapps.healthsync"
 private const val GARMIN_CONNECT_PACKAGE = "com.garmin.android.apps.connectmobile"
 private const val HEALTH_CONNECT_PACKAGE = "com.google.android.apps.healthdata"
 private const val FIT_SOURCE_NAME = "FIT-Datei"
+private const val GARMIN_BACKUP_SOURCE_NAME = "Garmin-Backup"
+private const val NO_NEW_HEALTH_CONNECT_RUNS = "Keine neuen Läufe gefunden"
 private const val CONNECTION_CHECK_MINIMUM_MILLIS = 2_200L
 private val LAST_CHECK_FORMAT = DateTimeFormatter.ofPattern("dd.MM.yyyy · HH:mm", Locale.GERMANY)
 private val GARMIN_SUCCESS_GREEN = Color(0xFF2E7D32)

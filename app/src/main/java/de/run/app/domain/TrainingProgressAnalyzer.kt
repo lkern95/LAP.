@@ -3,6 +3,7 @@ package de.run.app.domain
 import de.run.app.domain.model.TrainingProgress
 import de.run.app.domain.model.WeeklyRunVolume
 import de.run.app.domain.model.Workout
+import de.run.app.domain.model.isRunning
 import java.time.DayOfWeek
 import java.time.Instant
 import java.time.LocalDate
@@ -11,7 +12,7 @@ import java.time.temporal.TemporalAdjusters
 
 class TrainingProgressAnalyzer {
     fun analyze(workouts: List<Workout>, today: LocalDate, zone: ZoneId = ZoneId.systemDefault()): TrainingProgress {
-        val datedRuns = workouts.groupBy(Workout::sourceId).values.map { versions ->
+        val datedRuns = workouts.filter(Workout::isRunning).groupBy(Workout::sourceId).values.map { versions ->
             versions.maxBy { it.endedAtMillis }
         }.map { workout ->
             val date = Instant.ofEpochMilli(workout.startedAtMillis).atZone(zone).toLocalDate()
@@ -41,6 +42,9 @@ class TrainingProgressAnalyzer {
             runsLastFourWeeks = fourWeekRuns.size,
             minutesLastFourWeeks = fourWeekRuns.sumOf { (_, workout) -> (workout.durationSeconds / 60).toInt() },
             distanceMetersLastFourWeeks = fourWeekRuns.sumOf { (_, workout) -> workout.distanceMeters ?: 0.0 },
+            longestRunMinutesLastFourWeeks = fourWeekRuns.maxOfOrNull { (_, workout) ->
+                (workout.durationSeconds / 60).toInt()
+            } ?: 0,
             longestRunMinutesLastSixteenWeeks = sixteenWeekRuns.maxOfOrNull { (_, workout) ->
                 (workout.durationSeconds / 60).toInt()
             } ?: 0,

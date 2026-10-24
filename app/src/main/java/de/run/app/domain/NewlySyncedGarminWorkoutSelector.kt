@@ -1,6 +1,7 @@
 package de.run.app.domain
 
 import de.run.app.domain.model.Workout
+import de.run.app.domain.model.isRunning
 
 class NewlySyncedGarminWorkoutSelector {
     fun select(previouslySaved: List<Workout>, received: List<Workout>): Workout? {
@@ -8,6 +9,7 @@ class NewlySyncedGarminWorkoutSelector {
         return received.asSequence()
             .filter { it.sourceName in IMPORTED_GARMIN_SOURCES }
             .filterNot { it.sourceId.startsWith(DEMO_SOURCE_PREFIX) }
+            .filter(Workout::isRunning)
             .filter { it.sourceId !in savedIds && it.durationSeconds > 0L }
             .maxByOrNull(Workout::endedAtMillis)
     }

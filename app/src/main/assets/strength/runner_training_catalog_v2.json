@@ -1,0 +1,744 @@
+{
+  "schemaVersion": "1.1.0",
+  "locale": "de-DE",
+  "safetyAdvice": "Belastung schrittweise steigern und Bewegungen nur kontrolliert und beschwerdearm ausführen. Bei wiederholtem Wegknicken, Gelenkschwellung, deutlichen Schmerzen oder schmerzhafter Knieüberstreckung fachlich abklären. Bei Gelenkhypermobilität keine aggressiven Endbereichs-Dehnungen erzwingen. PNF-Diagonalen sind Koordinationsübungen und nicht automatisch eine Korrektur des Gangbilds. Die Übungen sind allgemeine Trainingsvorschläge, keine Diagnose oder individuelle Therapie.",
+  "exercises": [
+    {
+      "id": "kniebeuge_miniband",
+      "title": "Kniebeuge mit Miniband",
+      "subtitle": "Gesäß & Kniekontrolle",
+      "description": "Dynamische Kniebeuge mit leichtem Bandwiderstand als Feedback für Hüfte und Beinachse.",
+      "movementType": "dynamic",
+      "difficulty": "beginner",
+      "focusAreas": [
+        "quadriceps",
+        "gluteus_maximus",
+        "hip_abductors"
+      ],
+      "runnerGoals": [
+        "running_strength",
+        "knee_tracking",
+        "hip_stability"
+      ],
+      "equipment": [
+        "mini_band"
+      ],
+      "prescription": {
+        "type": "repetitions",
+        "reps": 10,
+        "perSide": false,
+        "restSeconds": 40,
+        "tempo": "3-0-1-0"
+      },
+      "steps": [
+        "Lege ein leichtes Miniband knapp oberhalb der Knie an und stelle die Füße etwa hüft- bis schulterbreit auf.",
+        "Verteile das Gewicht auf Ferse, Großzehen- und Kleinzehenballen.",
+        "Beuge Hüfte und Knie in etwa 3 Sekunden und führe das Gesäß nach hinten.",
+        "Richte dich kontrolliert wieder auf; die Knie folgen dabei ungefähr der Richtung der Füße."
+      ],
+      "techniqueCues": [
+        "Halte eine leichte Bandspannung, ohne die Knie maximal nach außen zu drücken.",
+        "Bewege dich nur so tief, wie du Fußkontakt und Beinachse kontrollierst."
+      ],
+      "tip": "Das Band ist ein Technik-Feedback; es korrigiert keine strukturellen X-Beine.",
+      "commonMistakes": [
+        "Knie stark gegen das Band nach außen pressen.",
+        "Fersen anheben oder ins Hohlkreuz ausweichen."
+      ],
+      "cautions": [
+        "Bei Knieschmerzen Tiefe und Bandspannung reduzieren."
+      ],
+      "regression": "Kniebeuge zu einem hohen Stuhl, zunächst ohne Band.",
+      "progression": "Tiefer oder mit moderatem Zusatzgewicht arbeiten, sobald die Bewegung stabil bleibt.",
+      "media": {
+        "imageKey": "kniebeuge_miniband",
+        "altText": "Schildkröte macht eine Kniebeuge mit Miniband oberhalb der Knie.",
+        "illustrationDirection": "Rosa Schildkröte mit dunkelgrünem Panzer und pinkem Stirnband, klare Seitenansicht, cremefarbener Hintergrund. Beide Füße auf dem Boden, Miniband deutlich oberhalb der Knie, Hüfte zurück, Knie kontrolliert über den Füßen."
+      }
+    },
+    {
+      "id": "wandsitz_90_90",
+      "title": "90/90-Wandsitz",
+      "subtitle": "Oberschenkel & Haltekraft",
+      "description": "Freier Wandsitz ohne Stuhl für isometrische Kraft und kontrollierte Knieposition.",
+      "movementType": "isometric",
+      "difficulty": "intermediate",
+      "focusAreas": [
+        "quadriceps",
+        "gluteus_maximus"
+      ],
+      "runnerGoals": [
+        "running_strength",
+        "downhill",
+        "knee_tracking"
+      ],
+      "equipment": [
+        "wall"
+      ],
+      "prescription": {
+        "type": "hold",
+        "holdSeconds": 30,
+        "perSide": false,
+        "restSeconds": 45
+      },
+      "steps": [
+        "Lehne den Rücken an eine rutschfeste Wand und stelle die Füße ein Stück davor auf.",
+        "Rutsche langsam nach unten, bis Knie und Hüften ungefähr 90 Grad gebeugt sind, sofern beschwerdefrei möglich.",
+        "Halte die Füße voll am Boden und die Knie ungefähr in Fußrichtung.",
+        "Atme ruhig weiter und schiebe dich nach der Haltezeit kontrolliert wieder hoch."
+      ],
+      "techniqueCues": [
+        "Der Rücken bleibt an der Wand; kein Stuhl trägt das Körpergewicht.",
+        "Halte die Knie ruhig, ohne sie nach innen oder außen zu erzwingen."
+      ],
+      "tip": "90 Grad sind keine Pflicht: Ein höherer Wandsitz ist bei Bedarf sinnvoll.",
+      "commonMistakes": [
+        "Luft anhalten.",
+        "Zu tiefe Position trotz Knieschmerzen erzwingen."
+      ],
+      "cautions": [
+        "Bei Schmerzen im Knie, insbesondere vorn, Beugewinkel reduzieren oder Übung auslassen."
+      ],
+      "regression": "Wandsitz mit etwa 45–60 Grad Kniebeugung und kürzerer Haltezeit.",
+      "progression": "Auf 40–45 Sekunden steigern, bevor Zusatzgewicht ergänzt wird.",
+      "media": {
+        "imageKey": "wandsitz_90_90",
+        "altText": "Schildkröte hält einen freien Wandsitz mit ungefähr 90 Grad Kniebeugung.",
+        "illustrationDirection": "Rosa Schildkröte mit dunkelgrünem Panzer und pinkem Stirnband, klare Seitenansicht, cremefarbener Hintergrund. Rücken an gerader Wand, ohne Stuhl, Oberschenkel beinahe horizontal, beide Füße flach aufgestellt."
+      }
+    },
+    {
+      "id": "step_up_bergauf",
+      "title": "Step-up auf die Stufe",
+      "subtitle": "Gesäß & Kraft bergauf",
+      "description": "Einbeinige Aufwärtsbewegung für Hüft- und Kniestrecker mit Übertrag auf Steigungen.",
+      "movementType": "dynamic",
+      "difficulty": "beginner",
+      "focusAreas": [
+        "quadriceps",
+        "gluteus_maximus",
+        "hip_abductors"
+      ],
+      "runnerGoals": [
+        "running_strength",
+        "uphill",
+        "knee_tracking"
+      ],
+      "equipment": [
+        "step",
+        "optional_support"
+      ],
+      "prescription": {
+        "type": "repetitions",
+        "reps": 8,
+        "perSide": true,
+        "restSeconds": 40,
+        "tempo": "2-0-2-0"
+      },
+      "steps": [
+        "Stelle einen Fuß vollständig auf eine feste, niedrige Stufe (etwa 10–20 cm zum Einstieg).",
+        "Verlagere das Gewicht auf das obere Bein und richte dich über dessen Hüfte und Knie auf.",
+        "Stehe oben stabil, ohne das Standknie nach hinten durchzudrücken.",
+        "Senke dich langsam mit Kontrolle ab und wiederhole auf derselben Seite."
+      ],
+      "techniqueCues": [
+        "Schiebe dich hauptsächlich mit dem oberen Bein hoch.",
+        "Halte Becken und Knie des Standbeins möglichst ruhig."
+      ],
+      "tip": "Eine niedrigere Stufe mit guter Kontrolle ist sinnvoller als eine hohe Stufe mit Ausweichbewegung.",
+      "commonMistakes": [
+        "Mit dem unteren Bein kräftig abspringen.",
+        "Mit dem Standknie nach innen fallen."
+      ],
+      "cautions": [
+        "Nur eine sichere, kippsichere Stufe verwenden; bei Schwindel festhalten."
+      ],
+      "regression": "Niedrigere Stufe und leichte Handunterstützung.",
+      "progression": "Stufenhöhe oder äußere Last schrittweise erhöhen, ohne die Beinachse zu verlieren.",
+      "media": {
+        "imageKey": "step_up_bergauf",
+        "altText": "Schildkröte steigt mit einem Bein auf eine niedrige Trainingsstufe.",
+        "illustrationDirection": "Rosa Schildkröte mit dunkelgrünem Panzer und pinkem Stirnband, klare Seitenansicht, cremefarbener Hintergrund. Ein Fuß steht vollständig auf einer niedrigen stabilen Stufe; Hüfte streckt sich beim Aufsteigen."
+      }
+    },
+    {
+      "id": "step_down_bergab",
+      "title": "Langsamer Step-down",
+      "subtitle": "Oberschenkel & Kraft bergab",
+      "description": "Betont die kontrollierte, exzentrische Belastung des Standbeins wie beim Abbremsen bergab.",
+      "movementType": "dynamic",
+      "difficulty": "intermediate",
+      "focusAreas": [
+        "quadriceps",
+        "gluteus_maximus",
+        "hip_abductors"
+      ],
+      "runnerGoals": [
+        "running_strength",
+        "downhill",
+        "knee_tracking"
+      ],
+      "equipment": [
+        "step",
+        "optional_support"
+      ],
+      "prescription": {
+        "type": "repetitions",
+        "reps": 6,
+        "perSide": true,
+        "restSeconds": 50,
+        "tempo": "4-0-2-0"
+      },
+      "steps": [
+        "Stehe auf einer stabilen, niedrigen Stufe mit einem Fuß, das andere Bein hängt frei nach vorn.",
+        "Beuge das Standknie und senke die freie Ferse in etwa 4 Sekunden Richtung Boden.",
+        "Berühre den Boden nur leicht, ohne das ganze Gewicht auf das freie Bein zu verlagern.",
+        "Richte dich kontrolliert über das Standbein auf; vermeide ein Einrasten in Überstreckung."
+      ],
+      "techniqueCues": [
+        "Lass das Standknie ungefähr den Zehen folgen.",
+        "Halte das Becken möglichst waagerecht und die Bewegung langsam."
+      ],
+      "tip": "Die langsame Absenkphase ist wichtiger als die Stufenhöhe.",
+      "commonMistakes": [
+        "Freies Bein abstellen und damit hochdrücken.",
+        "Standknie schnell nach innen kippen lassen."
+      ],
+      "cautions": [
+        "Exzentrische Belastung langsam steigern; bei gereizter Kniescheibe kleinere Stufe wählen."
+      ],
+      "regression": "5–10-cm-Stufe oder Handstütze und geringere Senktiefe.",
+      "progression": "Größere Stufe oder leichte Zusatzlast erst bei gleichbleibender Kontrolle.",
+      "media": {
+        "imageKey": "step_down_bergab",
+        "altText": "Schildkröte senkt auf einer Stufe das freie Bein langsam Richtung Boden.",
+        "illustrationDirection": "Rosa Schildkröte mit dunkelgrünem Panzer und pinkem Stirnband, klare Seitenansicht, cremefarbener Hintergrund. Ein Bein auf niedriger Stufe, das andere wird zur Bodenkontaktprobe kontrolliert abgesenkt."
+      }
+    },
+    {
+      "id": "einbeinstand_weiches_knie",
+      "title": "Einbeinstand mit weichem Knie",
+      "subtitle": "Kniekontrolle & Gleichgewicht",
+      "description": "Kontrolle der Kniestreckung im Einbeinstand, ohne passiv in die Überstreckung zu fallen.",
+      "movementType": "motor_control",
+      "difficulty": "beginner",
+      "focusAreas": [
+        "knee_proprioception",
+        "hamstrings",
+        "ankle_stabilizers"
+      ],
+      "runnerGoals": [
+        "knee_hyperextension_control",
+        "knee_tracking",
+        "ankle_stability"
+      ],
+      "equipment": [
+        "optional_support"
+      ],
+      "prescription": {
+        "type": "hold",
+        "holdSeconds": 20,
+        "perSide": true,
+        "restSeconds": 25
+      },
+      "steps": [
+        "Stelle dich barfuß oder in festen Schuhen neben eine sichere Handstütze.",
+        "Verlagere das Gewicht auf ein Bein und beuge dessen Knie leicht (ungefähr 10–20 Grad).",
+        "Hebe den anderen Fuß an und halte die leichte Kniebeugung gleichmäßig.",
+        "Halte Becken und Fußgewölbe stabil, dann wechsle die Seite."
+      ],
+      "techniqueCues": [
+        "Das Standknie bleibt weich und rastet nicht nach hinten ein.",
+        "Halte Ferse, Großzehen- und Kleinzehenballen am Boden."
+      ],
+      "tip": "Trainiere das Wahrnehmen und Halten einer kontrollierten Kniestellung statt maximaler Streckung.",
+      "commonMistakes": [
+        "Auf der Kniekapsel in Überstreckung hängen.",
+        "Zehen verkrallen oder Hüfte stark zur Seite verschieben."
+      ],
+      "cautions": [
+        "Bei deutlicher Instabilität, Wegknicken oder schmerzhafter Hyperextension physiotherapeutisch abklären."
+      ],
+      "regression": "Mit einem oder zwei Fingern an der Wand abstützen; kürzer halten.",
+      "progression": "Leichte Armbewegungen oder langsame Richtungswechsel ohne Knieeinrasten ergänzen.",
+      "media": {
+        "imageKey": "einbeinstand_weiches_knie",
+        "altText": "Schildkröte balanciert auf einem Bein und hält das Standknie leicht gebeugt.",
+        "illustrationDirection": "Rosa Schildkröte mit dunkelgrünem Panzer und pinkem Stirnband, klare Seitenansicht, cremefarbener Hintergrund. Einbeinstand ohne Überstreckung, kleines Kniebeugewinkel sichtbar, Stuhl nur als optionale Stütze."
+      }
+    },
+    {
+      "id": "beckenkippung_rueckenlage",
+      "title": "Becken einrollen in Rückenlage",
+      "subtitle": "Bauchkontrolle & Becken",
+      "description": "Sanfte posteriore Beckenkippung zur lumbopelvinen Kontrolle ohne aktives Beinheben.",
+      "movementType": "motor_control",
+      "difficulty": "beginner",
+      "focusAreas": [
+        "abdominal_control"
+      ],
+      "runnerGoals": [
+        "lumbopelvic_control"
+      ],
+      "equipment": [],
+      "prescription": {
+        "type": "repetitions",
+        "reps": 8,
+        "perSide": false,
+        "restSeconds": 25,
+        "holdPerRepSeconds": 5
+      },
+      "steps": [
+        "Lege dich auf den Rücken, beuge die Knie und stelle die Füße flach auf den Boden.",
+        "Atme ruhig aus und kippe das Becken minimal nach hinten, sodass der untere Rücken etwas flacher wird.",
+        "Halte die Position etwa 5 Sekunden, ohne Gesäß oder Füße anzuheben.",
+        "Löse die Spannung langsam und komme zurück in eine angenehme Ausgangsposition."
+      ],
+      "techniqueCues": [
+        "Die Bewegung entsteht aus der Beckenkontrolle, nicht durch Hochziehen der Beine.",
+        "Atme weiter; presse den Rücken nicht mit Gewalt in den Boden."
+      ],
+      "tip": "Keine Beinhebe-Übung: Die Hüftbeuger werden weniger gefordert, sind aber nicht nachweislich vollständig inaktiv.",
+      "commonMistakes": [
+        "Mit den Füßen stark in den Boden drücken, um das Becken hochzuheben.",
+        "Bauch pressen und die Luft anhalten."
+      ],
+      "cautions": [
+        "Bei Rückenschmerzen nur im schmerzfreien Bewegungsbereich arbeiten; eine stärkere Lendenlordose ist nicht automatisch krankhaft."
+      ],
+      "regression": "Nur 2–3 Sekunden halten und die Kippbewegung kleiner wählen.",
+      "progression": "Die Haltezeit schrittweise auf 8–10 Sekunden erhöhen, ohne die Atmung anzuhalten.",
+      "media": {
+        "imageKey": "beckenkippung_rueckenlage",
+        "altText": "Schildkröte liegt auf dem Rücken und kippt bei aufgestellten Füßen das Becken leicht ein.",
+        "illustrationDirection": "Rosa Schildkröte mit dunkelgrünem Panzer und pinkem Stirnband, klare Seitenansicht, cremefarbener Hintergrund. Rückenlage mit angewinkelten Knien, Füße am Boden; dezente Beckenrotation mit kleiner Richtungspfeil-Markierung."
+      }
+    },
+    {
+      "id": "pnf_sprinter_d1_band",
+      "title": "PNF-Sprinter-Schritt mit Band",
+      "subtitle": "Gangkoordination & Hüfte",
+      "description": "Gangorientiertes D1-Beinpattern nach dem Sprinter-Prinzip: freies Bein nach vorn-innen (Flexion/Adduktion/Außenrotation) und kontrolliert nach hinten-außen (Extension/Abduktion/Innenrotation). Eine vereinfachte Einzelbeinübung, keine 1:1-Abbildung des Ganges.",
+      "movementType": "motor_control",
+      "difficulty": "intermediate",
+      "focusAreas": [
+        "gluteus_maximus",
+        "hip_abductors",
+        "hip_external_rotators",
+        "knee_proprioception"
+      ],
+      "runnerGoals": [
+        "gait_coordination",
+        "hip_stability",
+        "knee_tracking"
+      ],
+      "equipment": [
+        "long_band",
+        "stable_band_anchor",
+        "foot_cuff",
+        "optional_support"
+      ],
+      "prescription": {
+        "type": "repetitions",
+        "reps": 8,
+        "perSide": true,
+        "restSeconds": 40,
+        "tempo": "2-0-2-0"
+      },
+      "steps": [
+        "Befestige ein leichtes Theraband mit einer sicheren, rutschfesten Fußschlaufe am Vorfuß. Der tiefe Fixpunkt liegt hinter und etwas seitlich vom Arbeitsbein.",
+        "Stehe auf dem anderen Bein, beuge das Standknie leicht und halte dich bei Bedarf an einer festen Stütze fest.",
+        "Starte mit dem freien Bein leicht hinten-außen; der Widerstand bleibt moderat und das Becken möglichst ruhig.",
+        "Führe das freie Knie auf einer kleinen Diagonale nach vorn und etwas zur Körpermitte: Hüftflexion, Adduktion und Außenrotation. Hebe die Fußspitze leicht an.",
+        "Führe das Bein langsam nach hinten-außen zurück: Hüftextension, Abduktion und Innenrotation. Beende die Bewegung ohne Verdrehung oder Knieüberstreckung."
+      ],
+      "techniqueCues": [
+        "Die Rotation entsteht überwiegend in der Hüfte; Knie und Fuß nicht gegeneinander verdrehen.",
+        "Beim D1-Flexionsmuster gehören am Fuß Dorsalflexion/Inversion, beim D1-Extensionsmuster Plantarflexion/Eversion dazu – nur klein und ohne Zwang ausführen.",
+        "Nicht durch ein Hohlkreuz oder starkes Kippen des Beckens die Hüftbewegung ersetzen."
+      ],
+      "tip": "Das Sprinter-D1-Muster trainiert diagonale Bewegungskontrolle. Die natürliche Laufbewegung ist komplexer als diese Übung.",
+      "commonMistakes": [
+        "Den Fuß oder das Knie verdrehen, um die Hüftrotation vorzutäuschen.",
+        "Das Band zu stark wählen und den Oberkörper verdrehen.",
+        "Das Standknie am Ende nach hinten einrasten lassen."
+      ],
+      "cautions": [
+        "Nur mit sicherer Bandbefestigung und gut sitzender Fußschlaufe trainieren; bei Instabilität zuerst ohne Band.",
+        "Bei Knie-/Hüftschmerzen Amplitude reduzieren; Fußbewegungen nie gewaltsam erzwingen."
+      ],
+      "regression": "Schrittdiagonale zunächst ohne Band und mit Handstütze üben; kleiner Bewegungsradius.",
+      "progression": "Leichte Bandspannung steigern oder freie Arm-Pendelsynchronisation ergänzen, aber nicht beides gleichzeitig.",
+      "pnfPattern": {
+        "family": "lower_extremity",
+        "diagonal": "D1",
+        "coordinationModel": "sprinter_gait_oriented",
+        "phases": [
+          {
+            "direction": "flexion",
+            "hipComponents": [
+              "flexion",
+              "adduction",
+              "external_rotation"
+            ],
+            "ankleComponents": [
+              "dorsiflexion",
+              "inversion"
+            ]
+          },
+          {
+            "direction": "extension",
+            "hipComponents": [
+              "extension",
+              "abduction",
+              "internal_rotation"
+            ],
+            "ankleComponents": [
+              "plantarflexion",
+              "eversion"
+            ]
+          }
+        ]
+      },
+      "media": {
+        "imageKey": "pnf_sprinter_d1_band",
+        "altText": "Schildkröte führt mit einem Band am Vorfuß einen PNF-D1-Schritt diagonal nach vorn-innen aus.",
+        "illustrationDirection": "Rosa Schildkröte mit dunkelgrünem Panzer und pinkem Stirnband, cremefarbener Hintergrund. Stehend mit optionaler Stütze, Standbein leicht gebeugt. Sicher befestigtes Theraband an Fußmanschette des freien Beines, tiefer Anker hinten-seitlich. Zwei kleine Pfeile zeigen vom Bein hinten-außen zum Knie vorn-innen; Becken aufrecht, Knie kontrolliert. Anatomisch korrekte Fußschlaufe statt losem Gummiband."
+      }
+    },
+    {
+      "id": "einbeinige_kniebeuge",
+      "title": "Einbeinige Mini-Kniebeuge",
+      "subtitle": "Knie & Beckenstabilität",
+      "description": "Kurze einbeinige Kniebeuge für kontrollierte Beinachse unter Last.",
+      "movementType": "dynamic",
+      "difficulty": "intermediate",
+      "focusAreas": [
+        "quadriceps",
+        "gluteus_maximus",
+        "hip_abductors",
+        "knee_proprioception"
+      ],
+      "runnerGoals": [
+        "knee_tracking",
+        "knee_hyperextension_control",
+        "hip_stability"
+      ],
+      "equipment": [
+        "optional_support"
+      ],
+      "prescription": {
+        "type": "repetitions",
+        "reps": 6,
+        "perSide": true,
+        "restSeconds": 45,
+        "tempo": "3-1-1-0"
+      },
+      "steps": [
+        "Stehe auf einem Bein neben einer Wand oder Stuhllehne als optionale Stütze.",
+        "Beuge Hüfte und Standknie langsam um etwa 20–45 Grad; das freie Bein bleibt leicht vor dem Körper.",
+        "Halte Knie und Fuß in einer kontrollierten, natürlichen Linie und das Becken möglichst ruhig.",
+        "Drücke dich wieder hoch, ohne das Knie am Ende nach hinten durchzudrücken."
+      ],
+      "techniqueCues": [
+        "Eine kleine saubere Kniebeuge ist besser als eine tiefe mit Kontrollverlust.",
+        "Das Knie muss nicht starr stehen, aber darf weder deutlich nach innen noch außen wegkippen."
+      ],
+      "tip": "Die Kniekontrolle zählt, nicht die maximale Tiefe.",
+      "commonMistakes": [
+        "Knie nach innen fallen lassen oder aggressiv nach außen schieben.",
+        "Oben in die Knieüberstreckung einrasten."
+      ],
+      "cautions": [
+        "Bei Knieinstabilität oder Schmerzen Bewegungsumfang reduzieren und abstützen."
+      ],
+      "regression": "Mit Handstütze und nur 10–20 Grad Kniebeugung beginnen.",
+      "progression": "Tiefe oder Zusatzlast vorsichtig erhöhen, wenn Becken und Knie stabil bleiben.",
+      "media": {
+        "imageKey": "einbeinige_kniebeuge",
+        "altText": "Schildkröte führt eine kurze einbeinige Kniebeuge mit stabilem Knie aus.",
+        "illustrationDirection": "Rosa Schildkröte mit dunkelgrünem Panzer und pinkem Stirnband, klare Seitenansicht, cremefarbener Hintergrund. Einbeinstand, Standknie 30 Grad gebeugt, freies Bein vor dem Körper; neutrale Knie-Fuß-Ausrichtung."
+      }
+    },
+    {
+      "id": "wadenheben_gebeugtes_knie_einbeinig",
+      "title": "Einbeiniges Wadenheben",
+      "subtitle": "Wade & Sprunggelenk",
+      "description": "Fersenheben mit leicht gebeugtem Knie zur Betonung des Soleus für die Laufbelastung.",
+      "movementType": "dynamic",
+      "difficulty": "beginner",
+      "focusAreas": [
+        "soleus",
+        "ankle_stabilizers"
+      ],
+      "runnerGoals": [
+        "uphill",
+        "running_strength",
+        "ankle_stability"
+      ],
+      "equipment": [
+        "optional_support"
+      ],
+      "prescription": {
+        "type": "repetitions",
+        "reps": 12,
+        "perSide": true,
+        "restSeconds": 35,
+        "tempo": "2-1-2-0"
+      },
+      "steps": [
+        "Stelle dich aufrecht neben eine feste Stütze und verlagere das Gewicht auf ein Bein.",
+        "Beuge das Standknie leicht und halte diesen Winkel während der Übung.",
+        "Hebe die Ferse in etwa 2 Sekunden an, bis du über dem Fußballen stehst.",
+        "Senke die Ferse langsam zurück auf den Boden und wiederhole ohne Federn."
+      ],
+      "techniqueCues": [
+        "Druck unter Großzehen- und Kleinzehenballen ausbalancieren.",
+        "Das Knie bleibt durchgehend leicht gebeugt und kippt nicht weg."
+      ],
+      "tip": "Die gebeugte Kniestellung betont den Soleus; trainiere erst die Kontrolle, dann die Last.",
+      "commonMistakes": [
+        "Wippen oder Schwung holen.",
+        "Das Sprunggelenk nach innen einknicken lassen."
+      ],
+      "cautions": [
+        "Bei Beschwerden an Achillessehne oder Wade Belastung und Bewegungsumfang anpassen."
+      ],
+      "regression": "Beidbeiniges Wadenheben mit gebeugten Knien.",
+      "progression": "Langsamere Senkphase oder leichtes Zusatzgewicht bei sicherer Bewegung.",
+      "media": {
+        "imageKey": "wadenheben_gebeugtes_knie_einbeinig",
+        "altText": "Schildkröte hebt im Einbeinstand bei leicht gebeugtem Knie die Ferse.",
+        "illustrationDirection": "Rosa Schildkröte mit dunkelgrünem Panzer und pinkem Stirnband, klare Seitenansicht, cremefarbener Hintergrund. Ein Fuß auf dem Boden, Standknie leicht gebeugt, Ferse angehoben; optional eine Hand an der Wand als Balancehilfe."
+      }
+    },
+    {
+      "id": "miniband_seitschritte",
+      "title": "Seitschritte mit Miniband",
+      "subtitle": "Abduktoren & Beckenstabilität",
+      "description": "Seitliche Schritte unter Bandzug zur Kräftigung der Hüftabduktoren und Stabilisierung des Beckens im Einbeinbelastungswechsel.",
+      "movementType": "dynamic",
+      "difficulty": "beginner",
+      "focusAreas": [
+        "hip_abductors",
+        "gluteus_maximus",
+        "hip_external_rotators"
+      ],
+      "runnerGoals": [
+        "hip_abductor_strength",
+        "hip_stability",
+        "knee_tracking",
+        "running_strength"
+      ],
+      "equipment": [
+        "mini_band"
+      ],
+      "prescription": {
+        "type": "repetitions",
+        "reps": 8,
+        "perSide": true,
+        "restSeconds": 35,
+        "tempo": "2-0-2-0"
+      },
+      "steps": [
+        "Lege ein leichtes Miniband knapp oberhalb der Knie an und stelle die Füße hüftbreit.",
+        "Gehe leicht in die Hüfte und beuge die Knie, ohne dich tief abzusenken.",
+        "Setze einen kleinen Schritt zur Seite, halte Becken und Oberkörper ruhig und lass das andere Bein kontrolliert nachfolgen.",
+        "Gehe acht Schritte in eine Richtung und danach acht in die andere; halte durchgehend sanfte Bandspannung."
+      ],
+      "techniqueCues": [
+        "Knie folgen annähernd der Fußrichtung, ohne aggressiv nach außen zu drücken.",
+        "Schritte klein halten und nicht seitlich mit dem Oberkörper schwanken."
+      ],
+      "tip": "Die Hüftabduktoren stabilisieren das Becken. Höherer Bandwiderstand ist nur sinnvoll, solange die Beinachse kontrolliert bleibt.",
+      "commonMistakes": [
+        "Zu große Seitenschritte mit Beckenwackeln.",
+        "Füße hinterherziehen und die Bandspannung unkontrolliert verlieren."
+      ],
+      "cautions": [
+        "Bei Knieschmerzen Bandspannung verringern und Bewegung flacher halten."
+      ],
+      "regression": "Kurze Seitenschritte ohne Band und mit leichtem Handkontakt zur Wand.",
+      "progression": "Bei sicherer Kontrolle das Band Richtung Unterschenkel/Füße versetzen oder Widerstand leicht erhöhen.",
+      "media": {
+        "imageKey": "miniband_seitschritte",
+        "altText": "Schildkröte macht einen seitlichen Schritt mit Miniband über beiden Knien.",
+        "illustrationDirection": "Rosa Schildkröte mit dunkelgrünem Panzer und pinkem Stirnband, cremefarbener Hintergrund. Frontalansicht, Viertel-Kniebeuge, Miniband oberhalb der Knie. Pfeil zur Seite, Beine nicht gekreuzt, Becken waagerecht."
+      }
+    },
+    {
+      "id": "glute_bridge",
+      "title": "Glute Bridge",
+      "subtitle": "Gesäß & Hüftstreckung",
+      "description": "Beidbeinige Hüftbrücke zur Kräftigung der Glutealmuskulatur bei kontrolliertem Becken und ruhiger Lendenwirbelsäule.",
+      "movementType": "dynamic",
+      "difficulty": "beginner",
+      "focusAreas": [
+        "gluteus_maximus",
+        "hamstrings",
+        "abdominal_control"
+      ],
+      "runnerGoals": [
+        "hip_extension_strength",
+        "uphill",
+        "lumbopelvic_control",
+        "running_strength"
+      ],
+      "equipment": [],
+      "prescription": {
+        "type": "repetitions",
+        "reps": 10,
+        "perSide": false,
+        "restSeconds": 35,
+        "tempo": "2-2-2-0"
+      },
+      "steps": [
+        "Lege dich auf den Rücken, stelle die Füße etwa hüftbreit auf und beuge die Knie bequem.",
+        "Atme aus und kippe das Becken leicht nach hinten, ohne den Bauch anzuspannen bis zum Pressen.",
+        "Drücke gleichmäßig über die Füße, spanne das Gesäß an und hebe das Becken, bis Hüfte und Rumpf eine angenehme Linie bilden.",
+        "Halte oben zwei Sekunden ohne ins Hohlkreuz auszuweichen und senke dich langsam wieder ab."
+      ],
+      "techniqueCues": [
+        "Die Bewegung soll aus der Hüftstreckung kommen, nicht aus einer starken Lendenwirbelsäulen-Überstreckung.",
+        "Beide Füße belasten, Rippen und Becken ungefähr übereinander halten."
+      ],
+      "tip": "Glute Bridging stärkt Hüftstrecker. Es korrigiert eine ausgeprägte Lordose nicht automatisch.",
+      "commonMistakes": [
+        "Becken zu hoch drücken und stark ins Hohlkreuz gehen.",
+        "Einseitig über die Fußspitzen drücken oder den Atem anhalten."
+      ],
+      "cautions": [
+        "Bei Rücken- oder Hamstringkrämpfen Hubhöhe reduzieren und Füße bequemer positionieren."
+      ],
+      "regression": "Kleine Beckenhebung mit beiden Füßen am Boden und 1 Sekunde Haltezeit.",
+      "progression": "Haltezeit verlängern oder eine leicht belastete Variante einsetzen; Einbein-Bridge erst bei stabiler Beckenposition.",
+      "media": {
+        "imageKey": "glute_bridge",
+        "altText": "Schildkröte hebt in Rückenlage mit aufgestellten Füßen das Becken zu einer Hüftbrücke.",
+        "illustrationDirection": "Rosa Schildkröte mit dunkelgrünem Panzer und pinkem Stirnband, cremefarbener Hintergrund, Seitenansicht. Rückenlage, beide Füße flach aufgestellt, Knie gebeugt, Becken angehoben bis zur geraden Linie Schultern–Hüfte–Knie; kein übertriebenes Hohlkreuz."
+      }
+    },
+    {
+      "id": "adduktoren_rockback_dehnung",
+      "title": "Sanfte Adduktorendehnung",
+      "subtitle": "Innenschenkel & Beweglichkeit",
+      "description": "Optionale, sanfte Adduktorenmobilisation im Vierfüßler; bei bereits großer Beweglichkeit nicht routinemäßig erforderlich.",
+      "movementType": "mobility",
+      "difficulty": "beginner",
+      "focusAreas": [
+        "hip_adductors"
+      ],
+      "runnerGoals": [
+        "adductor_mobility"
+      ],
+      "equipment": [],
+      "prescription": {
+        "type": "hold",
+        "holdSeconds": 20,
+        "perSide": true,
+        "restSeconds": 20
+      },
+      "steps": [
+        "Gehe in den Vierfüßlerstand und strecke ein Bein bequem seitlich aus; das Knie bleibt ohne Überstreckung.",
+        "Halte Rücken und Becken kontrolliert und schiebe das Gesäß nur so weit nach hinten, bis du eine milde Dehnung an der Oberschenkelinnenseite spürst.",
+        "Atme ruhig und halte etwa 20 Sekunden, ohne die Endposition zu erzwingen.",
+        "Kehre langsam zurück und wiederhole die Bewegung auf der anderen Seite."
+      ],
+      "techniqueCues": [
+        "Nur milde Dehnung, kein scharfer Zug in Leiste, Knie oder Hüfte.",
+        "Becken nicht verdrehen und den Rücken nicht durch Überstreckung ausweichen lassen."
+      ],
+      "tip": "Bei Hypermobilität oder normaler Adduktorenbeweglichkeit ist Dehnen oft verzichtbar; wichtiger ist kontrollierte Kraft.",
+      "commonMistakes": [
+        "Mit Schwung in eine große Spreizung drücken.",
+        "Durch ein Hohlkreuz mehr Bewegungsumfang vortäuschen."
+      ],
+      "cautions": [
+        "Bei instabilen/hypermobilen Hüften, Leistenschmerz oder unangenehmem Ziehen die Dehnung auslassen; nicht ins Gelenk-Endgefühl drücken."
+      ],
+      "regression": "Bein weniger weit seitlich öffnen oder die Beckenrückbewegung verkleinern.",
+      "progression": "Bei nachgewiesenem Mobilitätsbedarf sanft auf 30 Sekunden erhöhen; keine Maximaldehnung.",
+      "media": {
+        "imageKey": "adduktoren_rockback_dehnung",
+        "altText": "Schildkröte ist im Vierfüßlerstand und streckt ein Bein zur Seite für eine sanfte Innenschenkeldehnung.",
+        "illustrationDirection": "Rosa Schildkröte mit dunkelgrünem Panzer und pinkem Stirnband, cremefarbener Hintergrund, schräge Frontalansicht. Im Vierfüßlerstand ein Bein seitlich gestreckt, Knie nicht überstreckt; kleiner Pfeil Becken nach hinten; natürliche Gelenkstellung."
+      }
+    }
+  ],
+  "workouts": [
+    {
+      "id": "laufkraft_kniekontrolle",
+      "title": "Kraft für deinen Lauf",
+      "subtitle": "Knie & Hüftstabilität",
+      "description": "Kontrollierte Beinachse, Kraft und Vermeidung passiver Knieüberstreckung.",
+      "estimatedMinutes": 15,
+      "warmUpMinutes": 3,
+      "rounds": 2,
+      "restBetweenExercisesSeconds": 30,
+      "restBetweenRoundsSeconds": 60,
+      "runnerGoals": [
+        "running_strength",
+        "knee_tracking",
+        "knee_hyperextension_control",
+        "hip_stability"
+      ],
+      "exerciseIds": [
+        "kniebeuge_miniband",
+        "einbeinstand_weiches_knie",
+        "einbeinige_kniebeuge",
+        "wandsitz_90_90"
+      ]
+    },
+    {
+      "id": "berglauf_rumpfkontrolle",
+      "title": "Stark bergauf & bergab",
+      "subtitle": "Steigungen & Rumpfkontrolle",
+      "description": "Aufwärtskraft, exzentrisches Abbremsen bergab und Becken-/Hüftkontrolle.",
+      "estimatedMinutes": 20,
+      "warmUpMinutes": 3,
+      "rounds": 2,
+      "restBetweenExercisesSeconds": 30,
+      "restBetweenRoundsSeconds": 60,
+      "runnerGoals": [
+        "uphill",
+        "downhill",
+        "lumbopelvic_control",
+        "hip_extension_strength",
+        "ankle_stability"
+      ],
+      "exerciseIds": [
+        "step_up_bergauf",
+        "step_down_bergab",
+        "glute_bridge",
+        "wadenheben_gebeugtes_knie_einbeinig",
+        "beckenkippung_rueckenlage"
+      ]
+    },
+    {
+      "id": "huefte_gangkoordination",
+      "title": "Hüfte & Gangkontrolle",
+      "subtitle": "PNF, Abduktoren & Gesäß",
+      "description": "Gangorientiertes PNF-D1-Beinpattern, stabile Hüftabduktion und Hüftextension. Adduktorenmobilität nur bei Bedarf ergänzen.",
+      "estimatedMinutes": 17,
+      "warmUpMinutes": 3,
+      "rounds": 2,
+      "restBetweenExercisesSeconds": 25,
+      "restBetweenRoundsSeconds": 60,
+      "runnerGoals": [
+        "gait_coordination",
+        "hip_abductor_strength",
+        "hip_extension_strength",
+        "hip_stability"
+      ],
+      "exerciseIds": [
+        "pnf_sprinter_d1_band",
+        "miniband_seitschritte",
+        "glute_bridge",
+        "adduktoren_rockback_dehnung"
+      ],
+      "optionalExerciseIds": [
+        "adduktoren_rockback_dehnung"
+      ]
+    }
+  ]
+}

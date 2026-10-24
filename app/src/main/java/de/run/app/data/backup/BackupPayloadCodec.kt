@@ -3,13 +3,14 @@ package de.run.app.data.backup
 import de.run.app.data.local.StrengthCompletionEntity
 import de.run.app.data.local.TrainingDecisionEntity
 import de.run.app.data.local.WorkoutEntity
+import de.run.app.data.local.StrengthSessionEntity
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.io.DataInputStream
 import java.io.DataOutputStream
 
 internal object BackupPayloadCodec {
-    const val CURRENT_VERSION = 2
+    const val CURRENT_VERSION = 5
     private const val MAX_ITEMS = 100_000
     private const val MAX_STRING_BYTES = 1_000_000
 
@@ -20,6 +21,8 @@ internal object BackupPayloadCodec {
             snapshot.workouts.forEach { it.writeCurrent(out) }
             out.writeInt(snapshot.strengthCompletions.size)
             snapshot.strengthCompletions.forEach { it.write(out) }
+            out.writeInt(snapshot.strengthSessions.size)
+            snapshot.strengthSessions.forEach { it.write(out) }
             out.writeInt(snapshot.trainingDecisions.size)
             snapshot.trainingDecisions.forEach { it.write(out) }
             out.writeInt(snapshot.stores.size)
@@ -42,9 +45,15 @@ internal object BackupPayloadCodec {
             val payloadVersion = input.readInt()
             if (payloadVersion != expectedVersion) throw InvalidBackupPayload()
             val workouts = List(input.readCount()) {
-                if (payloadVersion == 1) input.readLegacyWorkout() else input.readCurrentWorkout()
+                when {
+                    payloadVersion == 1 -> input.readLegacyWorkout()
+                    payloadVersion >= 5 -> input.readVersionFiveWorkout()
+                    payloadVersion >= 4 -> input.readVersionFourWorkout()
+                    else -> input.readCurrentWorkout()
+                }
             }
             val strengths = List(input.readCount()) { input.readStrength() }
+            val sessions = if (payloadVersion >= 3) List(input.readCount()) { input.readSession() } else emptyList()
             val decisions = if (payloadVersion >= 2) List(input.readCount()) { input.readDecision() } else emptyList()
             val stores = buildMap {
                 repeat(input.readCount()) {
@@ -56,7 +65,7 @@ internal object BackupPayloadCodec {
                 }
             }
             if (input.available() != 0) throw InvalidBackupPayload()
-            BackupSnapshot(workouts, strengths, decisions, stores)
+            BackupSnapshot(workouts, strengths, decisions, stores, sessions)
         }
     }
 
@@ -66,6 +75,19 @@ internal object BackupPayloadCodec {
         out.writeNullableInt(averageHeartRateBpm); out.writeNullableInt(maximumHeartRateBpm)
         out.writeNullableInt(perceivedEffort); out.writeNullableString(runningAffectedBySymptoms)
         out.writeNullableLong(feedbackRecordedAtMillis)
+        out.writeBounded(activityType)
+        out.writeNullableInt(averageCadenceRpm)
+        out.writeNullableString(planMatchType)
+        out.writeNullableString(plannedTrainingId)
+        out.writeNullableLong(plannedDateEpochDay)
+        out.writeNullableString(plannedTitle)
+        out.writeNullableInt(plannedDurationMinutes)
+        out.writeNullableInt(plannedPaceSlowerSecondsPerKm)
+        out.writeNullableInt(plannedPaceFasterSecondsPerKm)
+        out.writeNullableInt(plannedEffortMinimum)
+        out.writeNullableInt(plannedEffortMaximum)
+        out.writeNullableString(plannedAssessment)
+        out.writeNullableString(plannedRationale)
     }
 
     private fun WorkoutEntity.writeLegacy(out: DataOutputStream) {
@@ -82,6 +104,25 @@ internal object BackupPayloadCodec {
         feedbackRecordedAtMillis = readNullableLong()
     )
 
+    private fun DataInputStream.readVersionFourWorkout() = readCurrentWorkout().copy(
+        activityType = readBounded(),
+        averageCadenceRpm = readNullableInt()
+    )
+
+    private fun DataInputStream.readVersionFiveWorkout() = readVersionFourWorkout().copy(
+        planMatchType = readNullableString(),
+        plannedTrainingId = readNullableString(),
+        plannedDateEpochDay = readNullableLong(),
+        plannedTitle = readNullableString(),
+        plannedDurationMinutes = readNullableInt(),
+        plannedPaceSlowerSecondsPerKm = readNullableInt(),
+        plannedPaceFasterSecondsPerKm = readNullableInt(),
+        plannedEffortMinimum = readNullableInt(),
+        plannedEffortMaximum = readNullableInt(),
+        plannedAssessment = readNullableString(),
+        plannedRationale = readNullableString()
+    )
+
     private fun DataInputStream.readLegacyWorkout() = WorkoutEntity(
         sourceId = readBounded(), sourceName = readBounded(), title = readBounded(),
         startedAtMillis = readLong(), endedAtMillis = readLong(), distanceMeters = readNullableDouble(),
@@ -93,6 +134,22 @@ internal object BackupPayloadCodec {
     }
 
     private fun DataInputStream.readStrength() = StrengthCompletionEntity(readBounded(), readBounded(), readBounded())
+
+    private fun StrengthSessionEntity.write(out: DataOutputStream) {
+        out.writeBounded(sessionId); out.writeBounded(workoutId); out.writeBounded(catalogSnapshot)
+        out.writeBounded(status); out.writeNullableString(currentExerciseId); out.writeInt(currentRound)
+        out.writeBounded(completedSetsJson); out.writeBoolean(isCurrentSetStarted)
+        out.writeNullableLong(pauseUntilMillis); out.writeLong(startedAtMillis); out.writeNullableLong(finishedAtMillis)
+        out.writeBounded(schemaVersion)
+    }
+
+    private fun DataInputStream.readSession() = StrengthSessionEntity(
+        sessionId = readBounded(), workoutId = readBounded(), catalogSnapshot = readBounded(),
+        status = readBounded(), currentExerciseId = readNullableString(), currentRound = readInt(),
+        completedSetsJson = readBounded(), isCurrentSetStarted = readBoolean(),
+        pauseUntilMillis = readNullableLong(), startedAtMillis = readLong(), finishedAtMillis = readNullableLong(),
+        schemaVersion = readBounded()
+    )
 
     private fun TrainingDecisionEntity.write(out: DataOutputStream) {
         out.writeBounded(id); out.writeInt(ruleVersion); out.writeBounded(inputRevision)

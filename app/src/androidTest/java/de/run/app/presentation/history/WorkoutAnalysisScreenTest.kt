@@ -15,6 +15,8 @@ import androidx.compose.ui.test.performClick
 import de.run.app.domain.model.AppTheme
 import de.run.app.domain.model.Workout
 import de.run.app.domain.model.RunningSymptomFeedback
+import de.run.app.domain.TrainingFeedback
+import de.run.app.domain.WorkoutPlanStatus
 import de.run.app.presentation.theme.RunTheme
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -36,7 +38,8 @@ class WorkoutAnalysisScreenTest {
             }
         }
 
-        composeRule.onNodeWithText("Stark gemacht!").assertIsDisplayed()
+        composeRule.onNodeWithText("Deine Laufwerte").assertIsDisplayed()
+        assertTrue(composeRule.onAllNodesWithText("Stark gemacht!").fetchSemanticsNodes().isEmpty())
         composeRule.onNodeWithTag("workout-analysis-list")
             .performScrollToNode(hasText("Mit Garmin Connect synchronisiert"))
         composeRule.onNodeWithText("Mit Garmin Connect synchronisiert").assertIsDisplayed()
@@ -50,6 +53,57 @@ class WorkoutAnalysisScreenTest {
         composeRule.onNodeWithContentDescription("Details zur Synchronisierung anzeigen").performClick()
         composeRule.onNodeWithText("Eine Streckenkarte wurde für diesen Lauf nicht mitgesendet.")
             .assertIsDisplayed()
+    }
+
+    @Test
+    fun identifiesLocallyImportedFitWithoutClaimingGarminSync() {
+        composeRule.setContent {
+            RunTheme(AppTheme.OLIVE) {
+                WorkoutAnalysisScreen(
+                    workout = sampleWorkout(distanceMeters = 8_000.0, averageHeartRateBpm = 151)
+                        .copy(sourceName = "FIT-Datei"),
+                    onContinue = {},
+                    onBack = {}
+                )
+            }
+        }
+
+        composeRule.onNodeWithText("FIT-Aktivität importiert").assertIsDisplayed()
+        assertTrue(composeRule.onAllNodesWithText("Lauf synchronisiert").fetchSemanticsNodes().isEmpty())
+        assertTrue(composeRule.onAllNodesWithText("Mit Garmin Connect synchronisiert").fetchSemanticsNodes().isEmpty())
+    }
+
+    @Test
+    fun presentsIndividualExtraRunFeedbackWithoutPerformanceGrade() {
+        composeRule.setContent {
+            RunTheme(AppTheme.OLIVE) {
+                WorkoutAnalysisScreen(
+                    workout = sampleWorkout(distanceMeters = 2_500.0, averageHeartRateBpm = 120)
+                        .copy(sourceName = "FIT-Datei"),
+                    onContinue = {},
+                    onBack = {},
+                    trainingFeedback = TrainingFeedback(
+                        shortSummary = "25 Min. zusätzlich gelaufen. Belastung ohne RPE und Beschwerderückmeldung nicht beurteilbar.",
+                        status = WorkoutPlanStatus.EXTRA_RUN,
+                        goalSummary = "Noch nicht einschätzbar.",
+                        reasons = emptyList(),
+                        nextAction = "Als Nächstes: Erholungslauf für 25 Minuten laut Wochenplan.",
+                        weeklyFocus = "",
+                        weeklyPlanProgress = de.run.app.domain.WeeklyPlanProgress(
+                            java.time.LocalDate.parse("2026-11-09"), 1, 2, 1
+                        ),
+                        qualityHeadline = "Belastung offen"
+                    )
+                )
+            }
+        }
+
+        composeRule.onNodeWithText("War das Training gut?").assertIsDisplayed()
+        composeRule.onNodeWithText(
+            "25 Min. zusätzlich gelaufen. Belastung ohne RPE und Beschwerderückmeldung nicht beurteilbar."
+        ).assertIsDisplayed()
+        composeRule.onNodeWithText("Diese Woche: 1 von 2 Läufen erledigt · 1 noch offen.").assertIsDisplayed()
+        composeRule.onNodeWithText("Als Nächstes: Erholungslauf für 25 Minuten laut Wochenplan.").assertIsDisplayed()
     }
 
     @Test

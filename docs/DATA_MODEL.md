@@ -2,7 +2,7 @@
 
 ## Domain-Werte
 
-- `Workout`: geplante oder absolvierte Einheit, einschließlich Dauer, Strecke, Aktivitätstyp und Herkunft.
+- `Workout`: absolvierte Einheit, einschließlich Dauer, Strecke, Aktivitätstyp, Herkunft und verfügbarer Kadenz. Laufplanung und Laufbelastung verwenden ausschließlich Einheiten vom Typ `RUNNING`; andere importierte Aktivitäten bleiben im Verlauf sichtbar.
 - `Sleep`: Zeitraum und verfügbare Schlafphasen.
 - `HeartRateSample`: Zeitpunkt, Schläge pro Minute und Herkunft.
 - `DailyActivity`: lokales Datum, Schritte, Distanz und Kalorien, soweit vorhanden.
@@ -18,13 +18,15 @@
 - `TrainingWeek.availability` enthält den Status je Wochentag. `scheduledRuns` enthält nur Vorschläge auf ausdrücklich verfügbarer Zeit; Einheiten ohne bestätigten Termin bleiben als vorläufige Vorschläge erkennbar.
 - Im flexiblen Modus bleiben Einheiten ohne festen Tag in `TrainingWeek.runs`; sie werden nicht als tägliche Termine gespeichert. Die Zeitobergrenzen liegen als additive DataStore-Einstellungen im Profil. Bereits gespeicherte Datumsangaben bleiben erhalten, werden aber nicht mehr zur Terminplanung verwendet und nicht in wiederkehrende Verfügbarkeit umgedeutet.
 - `ExerciseCompletion`: Planübung, Datum und Erledigungsstatus.
-- `Workout`: bei importierten Laufdaten zusätzlich optionale Strecke, durchschnittlicher und höchster Puls. Fehlende Werte bleiben leer und werden nicht geschätzt.
+- `Workout`: bei importierten Aktivitäten optionale Strecke, durchschnittlicher und höchster Puls sowie Kadenz. Fehlende Werte bleiben leer und werden nicht geschätzt. Aktivitäten werden deterministisch als Laufen, Gehen, Radfahren, Krafttraining oder Sonstiges typisiert.
 - `WorkoutFeedback`: optionale, lokal gespeicherte Selbsteinschätzung der Anstrengung (0–10), Antwort zu Beschwerden beim Laufen (`Nein`, `Ja`, `Unsicher`) und Erfassungszeit. Sie ist über die stabile Quell-ID dem Lauf zugeordnet. Überspringen speichert einen Erfassungszeitpunkt mit unbekannten Antworten; es erzeugt keine angenommene Beschwerdefreiheit.
+- `PlannedRun`: konkrete lokale Planeinheit mit stabiler Trainings-ID und Datum für terminierte Einheiten, Trainingstyp, Zeitabschnitten, Sprechtempo/RPE-Vorgabe, begründeter empirischer Pace-Referenz und optionaler Pulszone. Ein persönlicher Pacebereich wird nur aus mindestens fünf vergleichbaren lockeren Läufen mit expliziter RPE 2–4 gebildet. Ohne belastbare persönliche Pulsgrenze bleibt die Pulszone leer.
+- `WorkoutPlanMatch`: einmalig gesicherte Zuordnung eines importierten Laufs zu seiner Planeinheit oder als Zusatz-/unklarer Lauf. Der Datensatz bewahrt Plan-ID, Datum, Dauer, vorhandenen Pacebereich und Bewertungsstatus auf, damit spätere Planneuberechnungen die ursprüngliche Vergleichsgrundlage nicht ersetzen. Zusatzläufe erhöhen weiterhin die gemessene Belastung, erfüllen aber keine Planeinheit.
 - `TrainingDecisionSnapshot`: genau eine aktuelle lokale Zusammenfassung mit Regelversion, Ziel- und Eingaberevision, Auswertungstag, Anzahl/Laufzeit des jüngsten Trainingsstands, nächster Empfehlung und Grundcode. Die Revision ist ein Hash; der Snapshot enthält keine Kopie der Rohaktivitäten. Er wird nach Planberechnungen ersetzt und nicht als zweite Quelle für den Plan benutzt.
 
 ## Herkunft und Identität
 
-Importierte Werte tragen Quelle, externe Datensatz-ID und Änderungszeit. App-eigene Plandaten und Notizen sind separat modelliert. Health-Connect-Daten von Garmin Connect und Health Sync bleiben als unterschiedliche Herkunft erkennbar. FIT-Importe erhalten eine deterministische ID aus dem Dateiinhalt, sodass erneuter Import dieselbe lokale Aktivität aktualisiert statt ein Duplikat anzulegen.
+Importierte Werte tragen Quelle und externe Datensatz-ID. App-eigene Plandaten und Notizen sind separat modelliert. Health-Connect-Daten von Garmin Connect und Health Sync bleiben als unterschiedliche Herkunft erkennbar. FIT-, GPX- und TCX-Importe erhalten eine deterministische ID aus dem Dateiinhalt. Originaldateien werden unverändert unter einer SHA-256-basierten Kennung im privaten App-Speicher gesichert. Garmin-Connect-Originaldateien verknüpfen Aktivitäts-ID, SHA-256 und kanonische LAP-Aktivität.
 
 ## Zeit und Einheiten
 
@@ -32,4 +34,4 @@ Zeitpunkte werden mit Zeitzonenbezug gespeichert; Tagesübersichten verwenden da
 
 ## Änderungen
 
-Room-Schemaänderungen sind additiv und versioniert. Schema 2 hat optionale Pulswerte ergänzt, Schema 3 lokale Kraftübungserledigungen, Schema 4 optionale Lauf-Rückmeldungen und Schema 5 die aktuelle abgeleitete Trainingsentscheidung. Migrationen von Version 1 bis 5 erhalten vorhandene Läufe; alte Rückmeldungen bleiben unbekannt. Vor jeder weiteren Migration muss nachgewiesen sein, dass bestehende Einträge erhalten bleiben. Keine destruktive Schema-Neuerstellung.
+Room-Schemaänderungen sind additiv und versioniert. Schema 8 ergänzt Aktivitätstyp und Kadenz. Schema 9 ergänzt für Garmin-Dateien die Zuordnung zur kanonischen LAP-Aktivität. Schema 11 speichert die ursprüngliche Plan-Zuordnung und Bewertung importierter Läufe in optionalen Spalten der Workout-Zeile. Vorhandene Zeilen behalten durch `RUNNING` als Migrationsstandard ihr bisheriges Verhalten; Migration 10→11 fügt ausschließlich optionale Spalten hinzu.
