@@ -35,6 +35,7 @@ import de.run.app.domain.model.AvailabilityMode
 import de.run.app.domain.model.TrainingGoal
 import de.run.app.domain.model.TrainingGoalStatus
 import de.run.app.domain.model.TrainingPlanMode
+import de.run.app.domain.model.PlanAdjustment
 import de.run.app.presentation.history.WorkoutHistoryViewModel
 import de.run.app.presentation.settings.GarminWatch
 import java.time.LocalDate
@@ -140,12 +141,34 @@ private fun TrainingPlanContent(
     var showGoalHistory by remember { mutableStateOf(false) }
     val weekIndex = selectedWeekIndex.coerceIn(0, plan.weeks.lastIndex.coerceAtLeast(0))
     val selectedWeek = plan.weeks.getOrNull(weekIndex)
+    val activeGoal = state.goal?.takeIf { it.status == TrainingGoalStatus.ACTIVE }
+    val planGuidance = buildList {
+        if (activeGoal != null && plan.weeks.isNotEmpty()) {
+            add("LAP plant höchstens zwei Wochen voraus. Weitere Steigerungen werden nach deinen tatsächlich aufgezeichneten Läufen neu berechnet.")
+        }
+        if (activeGoal?.raceGoal == RaceGoal.RUN_THROUGH && plan.weeks.isNotEmpty()) {
+            add("Für dein Ziel „Durchlaufen“ verlängert LAP den Abschnitt am Stück in kleinen Schritten, wenn ein geplanter langer Lauf gut gepasst hat und du ihn als leicht (2–4 von 10) ohne Beschwerden bewertet hast. Die Uhrdaten zeigen nicht sicher, ob du wirklich ohne Pause gelaufen bist. Gehen bleibt jederzeit erlaubt.")
+        }
+    }
     Column(
         Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(24.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
-        Text(if (plan.status == PlanStatus.MAINTAINING_FORM) "Form halten" else "Wochenplan", style = MaterialTheme.typography.headlineMedium)
-        TrainingAdjustmentNotice(plan.adjustment, planChangeSummary)
+        Text(
+            when {
+                state.planEvidence.requiresStarterPlan && plan.weeks.isNotEmpty() -> "Vorläufiger Einstiegsplan"
+                plan.status == PlanStatus.MAINTAINING_FORM -> "Form halten"
+                else -> "Wochenplan"
+            },
+            style = MaterialTheme.typography.headlineMedium
+        )
+        PlanGuidanceSection(planGuidance)
+        if (plan.weeks.isNotEmpty()) TrainingPlanEvidenceNotice(state.planEvidence)
+        val explanations = listOfNotNull(plan.adjustmentExplanation, planChangeSummary)
+            .distinct().joinToString("\n\n").takeIf(String::isNotBlank)
+        if (plan.adjustment != PlanAdjustment.NO_RUN_DATA) {
+            TrainingAdjustmentNotice(plan.adjustment, explanations)
+        }
         state.goal?.takeIf { it.status == TrainingGoalStatus.ACTIVE }?.let { goal ->
             Text("${raceDistanceName(goal.raceDistanceMeters)} am ${goal.raceDate.format(DateTimeFormatter.ofPattern("dd.MM.yyyy"))}")
             Text("Dein Ziel: ${goalDescription(goal)}", color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -157,6 +180,11 @@ private fun TrainingPlanContent(
                         "Der Zieltermin liegt zurück. Das bedeutet nicht automatisch, dass du am Wettkampf teilgenommen hast."
                     } else "Bis zum Wettkampf bleibt wenig Vorbereitungszeit. LAP plant keine ausgefallenen Einheiten nach."
                 )
+                state.goal?.takeIf { it.status == TrainingGoalStatus.ACTIVE }?.let { goal ->
+                    if (plan.weeks.any { goal.raceDate in it.startsOn..it.startsOn.plusDays(6) }) {
+                        Text("${goal.raceDate.format(DateTimeFormatter.ofPattern("dd.MM.yyyy"))} · Wettkampf: ${raceDistanceName(goal.raceDistanceMeters)}")
+                    }
+                }
                 Button(onClick = onNewGoal) { Text("Neues Ziel") }
                 Button(onClick = { onPlanMode(TrainingPlanMode.MAINTAIN_FORM) }) { Text("Form halten") }
                 Button(onClick = { onPlanMode(TrainingPlanMode.PAUSED) }) { Text("Pause") }
@@ -203,12 +231,15 @@ private fun TrainingPlanContent(
                         Text("Erholungswoche: Der lange Lauf ist bewusst kürzer.")
                     }
                     PlanWeekSchedule(
-                        currentWeek,
-                        state.profile?.availabilityMode ?: AvailabilityMode.RECURRING,
-                        onOpenStrength
-                    ) { run ->
-                        onOpenTrainingDetails(currentWeek.startsOn, run)
-                    }
+                        week = currentWeek,
+                        availabilityMode = state.profile?.availabilityMode ?: AvailabilityMode.RECURRING,
+                        onOpenStrength = onOpenStrength,
+                        onOpenTrainingDetails = { run -> onOpenTrainingDetails(currentWeek.startsOn, run) },
+                        raceDate = state.goal?.takeIf { it.status == TrainingGoalStatus.ACTIVE }
+                            ?.raceDate?.takeIf { it in currentWeek.startsOn..currentWeek.startsOn.plusDays(6) },
+                        raceTitle = state.goal?.takeIf { it.status == TrainingGoalStatus.ACTIVE }
+                            ?.let { raceDistanceName(it.raceDistanceMeters) }
+                    )
                     Text("Die Tage sind ein Vorschlag und lassen sich an deinen Alltag anpassen. Zwischen den Läufen bleibt mindestens ein Ruhetag.")
                 }
             } else {

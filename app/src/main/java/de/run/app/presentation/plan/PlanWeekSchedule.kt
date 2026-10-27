@@ -29,6 +29,8 @@ import de.run.app.domain.model.AvailabilityStatus
 import de.run.app.domain.model.TrainingWeek
 import de.run.app.presentation.components.RunIllustration
 import java.time.DayOfWeek
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
 import java.util.Locale
 
 @Composable
@@ -36,13 +38,15 @@ internal fun PlanWeekSchedule(
     week: TrainingWeek,
     availabilityMode: AvailabilityMode,
     onOpenStrength: () -> Unit,
-    onOpenTrainingDetails: (PlannedRun) -> Unit
+    onOpenTrainingDetails: (PlannedRun) -> Unit,
+    raceDate: LocalDate? = null,
+    raceTitle: String? = null
 ) {
     if (availabilityMode == AvailabilityMode.VARIABLE) {
-        FlexibleWeekSuggestions(week, onOpenStrength, onOpenTrainingDetails)
+        FlexibleWeekSuggestions(week, onOpenStrength, onOpenTrainingDetails, raceDate, raceTitle)
         return
     }
-    val entries = remember(week) { entriesForWeek(week) }
+    val entries = remember(week, raceDate, raceTitle) { entriesForWeek(week, raceDate, raceTitle) }
 
     Column(Modifier.fillMaxWidth()) {
         entries.forEachIndexed { index, entry ->
@@ -78,7 +82,9 @@ internal fun PlanWeekSchedule(
 private fun FlexibleWeekSuggestions(
     week: TrainingWeek,
     onOpenStrength: () -> Unit,
-    onOpenTrainingDetails: (PlannedRun) -> Unit
+    onOpenTrainingDetails: (PlannedRun) -> Unit,
+    raceDate: LocalDate?,
+    raceTitle: String?
 ) {
     Column(
         Modifier.fillMaxWidth().clip(MaterialTheme.shapes.large)
@@ -101,6 +107,10 @@ private fun FlexibleWeekSuggestions(
                 style = MaterialTheme.typography.bodySmall
             )
         }
+        if (raceDate != null && raceTitle != null) {
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+            Text("${raceDate.format(RACE_DATE_FORMAT)} · Wettkampf: $raceTitle", style = MaterialTheme.typography.bodySmall)
+        }
         Text("Verfügbare Zeit bestätigst du erst, wenn du trainieren möchtest.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
@@ -108,10 +118,12 @@ private fun FlexibleWeekSuggestions(
 @Composable
 private fun ScheduleEntryRow(entry: ScheduleEntry, onClick: () -> Unit) {
     val isRun = entry.run != null
-    val rowColor = if (isRun && !entry.isOptional) {
+    val rowColor = when {
+        entry.isCompetition -> MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.72f)
+        isRun && !entry.isOptional -> {
         MaterialTheme.colorScheme.tertiary.copy(alpha = 0.10f)
-    } else {
-        MaterialTheme.colorScheme.background
+        }
+        else -> MaterialTheme.colorScheme.background
     }
     Row(
         Modifier
@@ -127,6 +139,7 @@ private fun ScheduleEntryRow(entry: ScheduleEntry, onClick: () -> Unit) {
                 contentDescription = when {
                     entry.run != null -> "${entry.dayLabel}, ${entry.title}, ${entry.subtitle}. Trainingsdetails öffnen"
                     entry.opensStrength -> "${entry.dayLabel}, Krafttraining öffnen"
+                    entry.isCompetition -> "${entry.dayLabel}, ${entry.title}, ${entry.subtitle}"
                     else -> "${entry.dayLabel}, Ruhetag"
                 }
             }
@@ -171,18 +184,22 @@ private data class ScheduleEntry(
     val run: PlannedRun? = null,
     val iconResource: Int? = null,
     val opensStrength: Boolean = false,
-    val isOptional: Boolean = false
+    val isOptional: Boolean = false,
+    val isCompetition: Boolean = false
 )
 
-private fun entriesForWeek(week: TrainingWeek): List<ScheduleEntry> {
+private fun entriesForWeek(week: TrainingWeek, raceDate: LocalDate?, raceTitle: String?): List<ScheduleEntry> {
     val runsByDay = week.scheduledRuns.associate { it.day to it.run }
     val strengthDays = DayOfWeek.entries.filter {
-        it !in runsByDay && week.availability[it] == AvailabilityStatus.AVAILABLE
+        it !in runsByDay && week.availability[it] == AvailabilityStatus.AVAILABLE &&
+            week.startsOn.plusDays((it.value - 1).toLong()) != raceDate
     }.take(week.strengthSessions).toSet()
     var strengthNumber = 0
     return DayOfWeek.entries.map { day ->
         val run = runsByDay[day]
+        val date = week.startsOn.plusDays((day.value - 1).toLong())
         when {
+            date == raceDate && raceTitle != null -> competitionEntry(week, day, raceTitle)
             run != null && run.title.contains("langer", ignoreCase = true) -> runEntry(
                 week, day, run, R.drawable.run_training_longrun, "Langer Lauf", run.optional
             )
@@ -195,6 +212,14 @@ private fun entriesForWeek(week: TrainingWeek): List<ScheduleEntry> {
         }
     }
 }
+
+private fun competitionEntry(week: TrainingWeek, day: DayOfWeek, raceTitle: String) = entry(
+    week,
+    day,
+    "Wettkampf",
+    raceTitle,
+    isCompetition = true
+)
 
 private fun restEntry(week: TrainingWeek, day: DayOfWeek) = entry(week, day, "Ruhetag", "Erholung")
 
@@ -240,6 +265,7 @@ private fun entry(
     iconResource: Int? = null,
     opensStrength: Boolean = false,
     isOptional: Boolean = false,
+    isCompetition: Boolean = false,
     idSuffix: String = title
 ): ScheduleEntry {
     val date = week.startsOn.plusDays((day.value - DayOfWeek.MONDAY.value).toLong())
@@ -261,6 +287,9 @@ private fun entry(
         run = run,
         iconResource = iconResource,
         opensStrength = opensStrength,
-        isOptional = isOptional
+        isOptional = isOptional,
+        isCompetition = isCompetition
     )
 }
+
+private val RACE_DATE_FORMAT: DateTimeFormatter = DateTimeFormatter.ofPattern("dd.MM.yyyy", Locale.GERMANY)

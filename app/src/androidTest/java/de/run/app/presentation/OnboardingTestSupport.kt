@@ -16,13 +16,13 @@ internal fun AndroidComposeTestRule<ActivityScenarioRule<MainActivity>, MainActi
     waitUntil(timeoutMillis = 8_000) {
         onAllNodesWithText("Dein Ziel").fetchSemanticsNodes().isNotEmpty() ||
             onAllNodesWithText("Heute").fetchSemanticsNodes().isNotEmpty() ||
-            onAllNodesWithText("Deine Trainingswerte").fetchSemanticsNodes().isNotEmpty()
+            onAllNodesWithText("Deine Erholungsdaten").fetchSemanticsNodes().isNotEmpty()
     }
     if (onAllNodesWithText("Dein Ziel").fetchSemanticsNodes().isNotEmpty()) {
         repeat(3) { onNodeWithContentDescription("Einrichtung fortsetzen").performClick() }
         onNodeWithContentDescription("Plan erstellen").performClick()
         waitUntil(timeoutMillis = 8_000) {
-            onAllNodesWithText("Deine Trainingswerte").fetchSemanticsNodes().isNotEmpty()
+            onAllNodesWithText("Deine Erholungsdaten").fetchSemanticsNodes().isNotEmpty()
         }
     }
 }

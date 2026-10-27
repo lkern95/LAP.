@@ -11,6 +11,13 @@ data class GarminHealthDayEntity(
     @PrimaryKey val date: String,
     val sleepMinutes: Int?,
     val restingHeartRateBpm: Int?,
+    val hrvLastNightAverageMs: Int?,
+    val hrvWeeklyAverageMs: Int?,
+    val hrvStatus: String?,
+    val hrvBaselineLowMs: Int?,
+    val hrvBaselineHighMs: Int?,
+    val averageStressLevel: Int?,
+    val steps: Int?,
     val updatedAtMillis: Long
 )
 

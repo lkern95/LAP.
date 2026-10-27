@@ -6,6 +6,9 @@ import androidx.lifecycle.viewModelScope
 import de.run.app.domain.model.StrengthCatalog
 import de.run.app.domain.model.StrengthSessionProgress
 import de.run.app.domain.StrengthSessionProgressor
+import de.run.app.domain.StrengthProgressAnalyzer
+import de.run.app.domain.repository.StrengthRepository
+import java.time.LocalDate
 import de.run.app.domain.repository.StrengthCatalogRepository
 import de.run.app.domain.repository.StrengthSessionRepository
 import java.util.UUID
@@ -25,7 +28,9 @@ data class StrengthUiState(
     val selectedSessionId: String? = null,
     val remainingSeconds: Int = 0,
     val errorMessage: String? = null,
-    val importMessage: String? = null
+    val importMessage: String? = null,
+    val completionCountsLastFourWeeks: Map<String, Int> = emptyMap(),
+    val completionHistoryLoaded: Boolean = true
 ) {
     val selectedSession: StrengthSessionProgress? get() = sessions.firstOrNull { it.sessionId == selectedSessionId }
 }
@@ -33,14 +38,28 @@ data class StrengthUiState(
 class StrengthViewModel(
     private val sessionRepository: StrengthSessionRepository,
     private val catalogRepository: StrengthCatalogRepository,
-    private val progressor: StrengthSessionProgressor = StrengthSessionProgressor()
+    private val progressor: StrengthSessionProgressor = StrengthSessionProgressor(),
+    strengthRepository: StrengthRepository? = null
 ) : ViewModel() {
-    private val mutableState = MutableStateFlow(StrengthUiState())
+    private val mutableState = MutableStateFlow(
+        StrengthUiState(completionHistoryLoaded = strengthRepository == null)
+    )
     val state: StateFlow<StrengthUiState> = mutableState.asStateFlow()
     private val parser = de.run.app.data.strength.StrengthCatalogJsonParser()
+    private val progressAnalyzer = StrengthProgressAnalyzer()
     private var timerJob: Job? = null
 
     init {
+        strengthRepository?.let { repository ->
+            viewModelScope.launch {
+                repository.observeCompletions().collectLatest { values ->
+                    mutableState.value = mutableState.value.copy(
+                        completionCountsLastFourWeeks = progressAnalyzer.completionsInLastFourWeeks(values, LocalDate.now()),
+                        completionHistoryLoaded = true
+                    )
+                }
+            }
+        }
         viewModelScope.launch {
             try {
                 val catalog = catalogRepository.load()
@@ -205,9 +224,10 @@ class StrengthViewModel(
 
 class StrengthViewModelFactory(
     private val sessionRepository: StrengthSessionRepository,
-    private val catalogRepository: StrengthCatalogRepository
+    private val catalogRepository: StrengthCatalogRepository,
+    private val strengthRepository: StrengthRepository? = null
 ) : ViewModelProvider.Factory {
     @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel> create(modelClass: Class<T>): T =
-        StrengthViewModel(sessionRepository, catalogRepository) as T
+        StrengthViewModel(sessionRepository, catalogRepository, strengthRepository = strengthRepository) as T
 }

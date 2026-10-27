@@ -60,6 +60,10 @@ import de.run.app.domain.LiveRunTargets
 import de.run.app.presentation.settings.AppearanceScreen
 import de.run.app.presentation.settings.AppearanceViewModel
 import de.run.app.presentation.settings.AppBackupViewModel
+import de.run.app.presentation.settings.EvaluationReportViewModel
+import de.run.app.application.LapEvaluationReportInput
+import de.run.app.application.GarminEvaluationSnapshot
+import de.run.app.application.LiveCoachEvaluationSnapshot
 import de.run.app.presentation.settings.GarminScreen
 import de.run.app.presentation.settings.GarminConnectViewModel
 import de.run.app.presentation.theme.RunTheme
@@ -84,6 +88,7 @@ fun RunApp(
     appearanceViewModel: AppearanceViewModel,
     garminConnectViewModel: GarminConnectViewModel,
     backupViewModel: AppBackupViewModel,
+    evaluationReportViewModel: EvaluationReportViewModel,
     strengthViewModel: StrengthViewModel,
     readinessViewModel: ReadinessViewModel,
     permissionResult: StateFlow<Set<String>?>,
@@ -92,6 +97,11 @@ fun RunApp(
     val appearance by appearanceViewModel.state.collectAsState()
     val planState by planViewModel.state.collectAsState()
     val workoutHistoryState by workoutHistoryViewModel.state.collectAsState()
+    val readinessState by readinessViewModel.state.collectAsState()
+    val garminConnectState by garminConnectViewModel.state.collectAsState()
+    val strengthState by strengthViewModel.state.collectAsState()
+    val liveCoachState by LiveCoachForegroundService.garminState.collectAsState()
+    val liveCoachActive by LiveCoachForegroundService.active.collectAsState()
     val activity = LocalContext.current.findActivity()
     val context = LocalContext.current
     val debugDemoMode = (LocalContext.current.applicationContext as? de.run.app.RunApplication)
@@ -133,6 +143,12 @@ fun RunApp(
             val currentRoute = entry?.destination?.route
             val detailSource = entry?.arguments?.getString("source")
             val result by permissionResult.collectAsState()
+            LaunchedEffect(Unit) {
+                workoutHistoryViewModel.refresh()
+            }
+            LaunchedEffect(workoutHistoryState.trainingHistoryCoverage) {
+                planViewModel.updateTrainingHistoryCoverage(workoutHistoryState.trainingHistoryCoverage)
+            }
             LaunchedEffect(workoutHistoryState.newlySyncedWorkout?.sourceId, currentRoute) {
                 if (
                     workoutHistoryState.newlySyncedWorkout != null &&
@@ -145,7 +161,9 @@ fun RunApp(
                 if (currentRoute == Destination.PROGRESS.route || currentRoute == GARMIN_ROUTE) {
                     workoutHistoryViewModel.refresh(surfaceNewGarminRun = true)
                 }
-                if (currentRoute == READINESS_ROUTE) readinessViewModel.refresh()
+                if (currentRoute == READINESS_ROUTE || currentRoute == Destination.PROFILE.route) {
+                    readinessViewModel.refresh()
+                }
             }
             LaunchedEffect(result) {
                 result?.let {
@@ -283,7 +301,7 @@ fun RunApp(
                     }
                     val availableMinutes = detailEntry.arguments?.getInt("availableMinutes") ?: 0
                     val selectedRun = storedRun?.let { run ->
-                        if (availableMinutes > 0) planViewModel.runForAvailableTime(run, availableMinutes) ?: run else run
+                        if (availableMinutes > 0) planViewModel.runForAvailableTime(run, availableMinutes, workoutHistoryState.workouts) ?: run else run
                     }
                     TrainingDetailsScreen(
                         run = selectedRun,
@@ -316,7 +334,7 @@ fun RunApp(
                         planState.plan?.weeks?.firstOrNull { it.startsOn == date }?.runs?.getOrNull(runIndex)
                     }
                     val runForDisplay = plannedRun?.let { run ->
-                        if (availableMinutes > 0) planViewModel.runForAvailableTime(run, availableMinutes) ?: run else run
+                        if (availableMinutes > 0) planViewModel.runForAvailableTime(run, availableMinutes, workoutHistoryState.workouts) ?: run else run
                     }
                     if (runForDisplay != null) {
                         LiveRunCoachScreen(
@@ -376,9 +394,89 @@ fun RunApp(
                     )
                 }
                 composable(Destination.PROFILE.route) {
+                    val evaluationReportInput = LapEvaluationReportInput(
+                        generatedAt = java.time.Instant.now(),
+                        appVersion = de.run.app.BuildConfig.VERSION_NAME,
+                        isDebugBuild = de.run.app.BuildConfig.DEBUG,
+                        isDemoData = isDemo || readinessState.isDemo,
+                        profile = planState.profile,
+                        goal = planState.goal,
+                        goals = planState.goals,
+                        plan = planState.plan,
+                        progress = planState.progress,
+                        nextRun = planState.nextScheduledRun?.run,
+                        forecast = planState.halfMarathonForecast,
+                        feedback = workoutHistoryState.trainingFeedback,
+                        workouts = workoutHistoryState.workouts,
+                        health = readinessState.health,
+                        readiness = readinessState.assessment,
+                        readinessFacts = readinessState.facts,
+                        readinessGuidance = readinessState.guidance,
+                        readinessWeeklyComparison = readinessState.weeklyTrainingComparison,
+                        readinessHealthReadFailed = readinessState.healthReadFailed,
+                        readinessWorkoutAccess = readinessState.hasWorkoutAccess,
+                        readinessWorkoutsUnavailable = readinessState.workoutsUnavailable,
+                        readinessWorkoutsFailed = readinessState.workoutsFailed,
+                        workoutDashboard = workoutHistoryState.dashboard,
+                        workoutSelectedPeriod = workoutHistoryState.selectedPeriod,
+                        workoutReadStatus = when {
+                            workoutHistoryState.isLoading -> "Lädt"
+                            workoutHistoryState.hasError -> "Fehler beim Lesen"
+                            workoutHistoryState.isUnavailable -> "Nicht verfügbar"
+                            workoutHistoryState.accessMessage != null -> "Freigabe erforderlich"
+                            else -> "Verfügbar"
+                        },
+                        workoutFullHistoryAccess = workoutHistoryState.hasFullHistoryAccess,
+                        workoutLastReadAt = workoutHistoryState.lastSuccessfulReadAt,
+                        workoutLastRefreshImportedCount = workoutHistoryState.lastRefreshImportedCount,
+                        fitImportResult = workoutHistoryState.lastFitImportResult,
+                        planCompletedRuns = planState.completedPlannedRunCount,
+                        planLoadError = planState.hasLoadError,
+                        goalHistoryError = planState.hasGoalHistoryError,
+                        goalPaceSecondsPerKilometer = planState.goalPaceSecondsPerKilometer,
+                        goalPaceUsesForecast = planState.goalPaceUsesForecast,
+                        pendingCompetitionCandidate = planState.pendingCompetitionCandidate != null,
+                        decisionSnapshot = planState.decisionSnapshot,
+                        trainingHistoryCoverage = workoutHistoryState.trainingHistoryCoverage,
+                        planEvidence = planState.planEvidence,
+                        liveCoach = LiveCoachEvaluationSnapshot(
+                            active = liveCoachActive,
+                            connectionStatus = liveCoachState.connectionStatus.name,
+                            transport = liveCoachState.diagnostics.transport.name,
+                            receiver = liveCoachState.diagnostics.receiver.name,
+                            incomingMessages = liveCoachState.diagnostics.incomingMessages,
+                            rejectedMessages = liveCoachState.diagnostics.rejectedMessages,
+                            validMeasurements = liveCoachState.diagnostics.validMeasurements,
+                            targetTransfer = liveCoachState.diagnostics.targetTransfer.name,
+                            estimatedLatencyMillis = liveCoachState.estimatedLatencyMillis,
+                            averageMessagesPerSecond = liveCoachState.averageMessagesPerSecond,
+                            audioAnnouncementsEnabled = LiveCoachForegroundService.audioAnnouncementsEnabled(context),
+                            lastCue = liveCoachState.lastCoachCue?.name,
+                            activeSeconds = liveCoachState.metrics?.activeSeconds,
+                            distanceMeters = liveCoachState.metrics?.distanceMeters,
+                            paceSecondsPerKilometer = liveCoachState.metrics?.paceSecondsPerKilometer,
+                            heartRateBpm = liveCoachState.metrics?.heartRateBpm
+                        ),
+                        theme = appearance.theme,
+                        garmin = GarminEvaluationSnapshot(
+                            isConnected = garminConnectState.isConnected,
+                            isSyncing = garminConnectState.isSyncing,
+                            hasSyncError = garminConnectState.hasSyncError,
+                            lastSyncAt = garminConnectState.lastHistorySyncAt,
+                            originalFitSaved = garminConnectState.originalFitSaved,
+                            workoutImported = garminConnectState.workoutImported,
+                            trainingPlanUpdated = garminConnectState.trainingPlanUpdated,
+                            lastHistorySyncSummary = garminConnectState.lastHistorySyncSummary
+                        )
+                    )
                     AppearanceScreen(
                         viewModel = appearanceViewModel,
                         backupViewModel = backupViewModel,
+                        evaluationReportViewModel = evaluationReportViewModel,
+                        evaluationReportInput = evaluationReportInput,
+                        isEvaluationDataLoading = workoutHistoryState.isLoading || readinessState.isLoading ||
+                            garminConnectState.isCheckingConnection || garminConnectState.isSyncing ||
+                            strengthState.isLoading || !strengthState.completionHistoryLoaded,
                         strengthViewModel = strengthViewModel,
                         onOpenGarmin = { navController.navigate(GARMIN_ROUTE) { launchSingleTop = true } },
                         onEditTrainingGoal = {

@@ -24,8 +24,49 @@ data class WeeklyTrainingComparison(
     val current: TrainingWeekStats,
     val previous: TrainingWeekStats,
     val distanceChangePercent: Int?,
-    val feedback: String
+    val feedback: String,
+    val changes: WeeklyTrainingChanges = weeklyTrainingChanges(current, previous)
 )
+
+enum class TrainingWeekTrend { IMPROVED, DECLINED, UNCHANGED }
+
+data class TrainingWeekDelta<T>(val amount: T?, val trend: TrainingWeekTrend?)
+
+data class WeeklyTrainingChanges(
+    val runCount: TrainingWeekDelta<Int>,
+    val distanceMeters: TrainingWeekDelta<Double>,
+    val durationSeconds: TrainingWeekDelta<Long>,
+    val paceSecondsPerKilometer: TrainingWeekDelta<Long>,
+    val averageHeartRateBpm: TrainingWeekDelta<Int>
+)
+
+fun weeklyTrainingChanges(current: TrainingWeekStats, previous: TrainingWeekStats) = WeeklyTrainingChanges(
+    runCount = metricDelta(current.runCount, previous.runCount, higherIsBetter = true) { a, b -> a - b },
+    distanceMeters = metricDelta(current.distanceMeters, previous.distanceMeters, higherIsBetter = true) { a, b -> a - b },
+    durationSeconds = metricDelta(current.durationSeconds, previous.durationSeconds, higherIsBetter = true) { a, b -> a - b },
+    paceSecondsPerKilometer = metricDelta(
+        current.comparablePaceSecondsPerKilometer,
+        previous.comparablePaceSecondsPerKilometer,
+        higherIsBetter = false
+    ) { a, b -> a - b },
+    averageHeartRateBpm = metricDelta(current.averageHeartRateBpm, previous.averageHeartRateBpm, higherIsBetter = false) { a, b -> a - b }
+)
+
+private fun <T : Comparable<T>, D> metricDelta(
+    current: T?,
+    previous: T?,
+    higherIsBetter: Boolean,
+    difference: (T, T) -> D
+): TrainingWeekDelta<D> {
+    if (current == null || previous == null) return TrainingWeekDelta(null, null)
+    val comparison = current.compareTo(previous)
+    val trend = when {
+        comparison == 0 -> TrainingWeekTrend.UNCHANGED
+        (comparison > 0) == higherIsBetter -> TrainingWeekTrend.IMPROVED
+        else -> TrainingWeekTrend.DECLINED
+    }
+    return TrainingWeekDelta(difference(current, previous), trend)
+}
 
 class WeeklyTrainingComparisonAnalyzer {
     fun analyze(

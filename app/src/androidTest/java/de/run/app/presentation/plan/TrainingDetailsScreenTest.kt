@@ -9,6 +9,8 @@ import androidx.compose.ui.test.performScrollTo
 import de.run.app.domain.model.AppTheme
 import de.run.app.domain.model.PlannedRun
 import de.run.app.domain.model.RunStep
+import de.run.app.domain.model.DistanceSpikeAssessment
+import de.run.app.domain.model.DistanceSpikeLevel
 import de.run.app.presentation.theme.RunTheme
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -75,6 +77,34 @@ class TrainingDetailsScreenTest {
         }
         composeRule.onNodeWithText("Diese Trainingseinheit ist nicht mehr verfügbar.").assertIsDisplayed()
         composeRule.onNodeWithText("Zum Wochenplan").assertIsDisplayed()
+    }
+
+    @Test
+    fun showsMeasuredDistanceIncreaseAsAWarningWithoutBlockingTheRun() {
+        val run = sampleRun().copy(
+            distanceSpikeAssessment = DistanceSpikeAssessment(
+                level = DistanceSpikeLevel.WARNING,
+                referenceDistanceMeters = 8_000.0,
+                referenceDate = java.time.LocalDate.of(2026, 10, 10),
+                estimatedDistanceMinimumMeters = 10_000.0,
+                estimatedDistanceMaximumMeters = 12_000.0,
+                increaseMinimumPercent = 25,
+                increaseMaximumPercent = 50,
+                isEstimate = true
+            )
+        )
+        composeRule.setContent {
+            RunTheme(AppTheme.DARK) {
+                TrainingDetailsScreen(run = run, onBack = {}, onOpenPlan = {})
+            }
+        }
+
+        composeRule.onNodeWithText("Deutlicher Distanzsprung", substring = true).assertIsDisplayed()
+        composeRule.onNodeWithText("Gehabschnitte sind nicht eingerechnet", substring = true)
+            .assertIsDisplayed()
+        composeRule.onNodeWithText("keine Trainingssperre", substring = true)
+            .assertIsDisplayed()
+        composeRule.onNodeWithText("Live-Begleitung starten").assertExists()
     }
 
     private fun sampleRun() = PlannedRun(

@@ -27,3 +27,10 @@
 - Use stable dependencies. Before major upgrades, inspect breaking changes, run tests, and verify migrations and Health Connect behavior.
 - Add focused unit, integration, and UI tests for changed behavior; run relevant tests, static analysis, and builds before completion.
 - Inspect Git branch, HEAD, status, and recent commits before edits. Never reset, clean, stash, rebase, or pull without explicit instruction. Never push unless asked. Keep private data out of commits.
+
+## Debug- und Release-Parität
+- Die Emulator-Debug-App und die P30-Release-App müssen dieselben produktiven Funktionen aus `src/main` enthalten. Produktfunktionen dürfen nicht nur in Debug verfügbar sein.
+- Debug-Werkzeuge, Simulatoren und Demodaten bleiben auf Debug beschränkt (`src/debug`, `debugImplementation` und klar geprüfte `BuildConfig.DEBUG`-Schalter).
+- Bei jeder Funktionsänderung relevante Tests sowie Debug- und Release-Build aus demselben Arbeitsstand ausführen. Release-Parität erst dann als geprüft melden, wenn der signierte Release-Build erfolgreich war.
+- Einen Debug-Build niemals als Release-Artefakt ausgeben. Fehlen lokale Signierdaten, den Release-Status ausdrücklich als ungeprüft melden.
+- Release nicht auf dem P30 installieren, bevor der Nutzer diese Installation ausdrücklich freigegeben hat.

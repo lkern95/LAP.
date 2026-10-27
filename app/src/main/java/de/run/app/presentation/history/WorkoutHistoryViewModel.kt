@@ -16,6 +16,7 @@ import de.run.app.domain.model.WorkoutFeedback
 import de.run.app.domain.model.isRunning
 import de.run.app.domain.model.RunningSymptomFeedback
 import de.run.app.domain.model.TrainingProgress
+import de.run.app.domain.model.TrainingHistoryCoverage
 import de.run.app.domain.model.TrainingProfile
 import de.run.app.domain.repository.TrainingGoalRepository
 import de.run.app.domain.repository.TrainingProfileRepository
@@ -47,10 +48,12 @@ data class WorkoutHistoryUiState(
     val lastRefreshMessage: String? = null,
     val lastRefreshImportedCount: Int? = null,
     val hasFullHistoryAccess: Boolean? = null,
+    val trainingHistoryCoverage: TrainingHistoryCoverage = TrainingHistoryCoverage(),
     val isSavingFeedback: Boolean = false,
     val feedbackSaveFailed: Boolean = false,
     val isImportingFit: Boolean = false,
     val fitImportMessage: String? = null,
+    val lastFitImportResult: FitActivityImportResult? = null,
     val trainingFeedback: TrainingFeedback? = null
 )
 
@@ -184,7 +187,11 @@ class WorkoutHistoryViewModel(
                 FitActivityImportResult.FileTooLarge -> "Die Datei ist zu groß für den sicheren Import."
                 FitActivityImportResult.Failed, null -> "Die FIT-Datei konnte nicht übernommen werden."
             }
-            mutableState.value = mutableState.value.copy(isImportingFit = false, fitImportMessage = message)
+            mutableState.value = mutableState.value.copy(
+                isImportingFit = false,
+                fitImportMessage = message,
+                lastFitImportResult = result
+            )
         }
     }
 
@@ -240,6 +247,7 @@ class WorkoutHistoryViewModel(
                                 "$importedCount neue Läufe übernommen"
                             } else "Keine neuen Läufe gefunden",
                             hasFullHistoryAccess = result.hasFullHistoryAccess,
+                            trainingHistoryCoverage = TrainingHistoryCoverage.from(result, currentRecords),
                             newlySyncedWorkout = newlySynced ?: mutableState.value.newlySyncedWorkout,
                             workouts = currentRecords
                         )
@@ -250,6 +258,7 @@ class WorkoutHistoryViewModel(
                         accessMessage = "Gib Läufe frei, damit sie hier erscheinen. Strecke und Puls sind freiwillig; ältere Läufe kannst du zusätzlich freigeben.",
                         isUnavailable = false,
                         hasFullHistoryAccess = null,
+                        trainingHistoryCoverage = TrainingHistoryCoverage.from(result, previouslySaved),
                         lastRefreshMessage = null
                     )
                     WorkoutReadResult.Unavailable -> mutableState.value = mutableState.value.copy(
@@ -257,11 +266,13 @@ class WorkoutHistoryViewModel(
                         accessMessage = "Die Gesundheitsdaten sind auf diesem Gerät gerade nicht verfügbar.",
                         isUnavailable = true,
                         hasFullHistoryAccess = null,
+                        trainingHistoryCoverage = TrainingHistoryCoverage.from(result, previouslySaved),
                         lastRefreshMessage = null
                     )
                     WorkoutReadResult.Failed -> mutableState.value = mutableState.value.copy(
                         isLoading = false,
                         hasError = true,
+                        trainingHistoryCoverage = TrainingHistoryCoverage.from(result, previouslySaved),
                         lastRefreshMessage = null
                     )
                 }

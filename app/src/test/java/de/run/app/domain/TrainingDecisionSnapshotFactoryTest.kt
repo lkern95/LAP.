@@ -48,7 +48,7 @@ class TrainingDecisionSnapshotFactoryTest {
 
         assertNotEquals(initial.inputRevision, withFeedback.inputRevision)
         assertNotEquals(initial.targetRevision, changedGoal.targetRevision)
-        assertEquals(1, initial.ruleVersion)
+        assertEquals(3, initial.ruleVersion)
     }
 
     private fun workout(id: String, date: LocalDate) = Workout(

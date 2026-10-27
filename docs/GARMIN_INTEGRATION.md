@@ -16,9 +16,9 @@ Für eine ausgewählte Laufeinheit übergibt Android über die offizielle Connec
 
 Der offizielle Standardweg bleibt Garmin-Uhr → Garmin Connect → Health Connect → `HealthConnectRepository` → Domain → lokale Ablage → ViewModel → UI.
 
-Für die ausschließlich private LAP-Installation ist zusätzlich ein explizit freigegebener, ausschließlich lesender Garmin-Connect-Webservicezugriff zulässig. Mit ausdrücklicher Freigabe der Kontoinhaberin darf er Aktivitäten suchen und Originaldateien herunterladen sowie verfügbare tägliche Schlaf-, Ruhepuls- und unmittelbar erforderliche Gesundheitswerte lesen. Er läuft direkt auf dem Android-Gerät, speichert abgerufene Gesundheitswerte lokal und verwendet keine Cloud-Komponente. Schreibzugriffe, Änderungen, Löschungen, Archivierung oder das Markieren als synchronisiert bleiben verboten. Dieser Weg ist inoffiziell, kann jederzeit durch Garmin geändert oder blockiert werden und ist kein Ersatz für den offiziellen Health-Connect-Weg.
+Für die ausschließlich private LAP-Installation ist zusätzlich ein explizit freigegebener, ausschließlich lesender Garmin-Connect-Webservicezugriff zulässig. Mit ausdrücklicher Freigabe der Kontoinhaberin darf er Aktivitäten suchen und Originaldateien herunterladen sowie verfügbare tägliche Schlaf-, Ruhepuls-, nächtliche HRV-/HFV-, Stress- und Schrittwerte lesen. Er läuft direkt auf dem Android-Gerät, speichert abgerufene Gesundheitswerte lokal und verwendet keine Cloud-Komponente. Schreibzugriffe, Änderungen, Löschungen, Archivierung oder das Markieren als synchronisiert bleiben verboten. Dieser Weg ist inoffiziell, kann jederzeit durch Garmin geändert oder blockiert werden und ist kein Ersatz für den offiziellen Health-Connect-Weg.
 
-Die technische Referenz `python-garminconnect` dokumentiert unter anderem tägliche Schlafdaten (`sleep-service/sleep/dailySleepData`), tägliche Herzfrequenzstatistiken (`usersummary-service/stats/heartRate/daily`) und Ruhepuls-Verläufe. LAP darf daraus nur die ausdrücklich freigegebenen GET-Aufrufe für Schlaf und Ruhepuls ableiten. Endpunkte werden sparsam und mit Pausen aufgerufen; 403, 429, MFA, CAPTCHA oder andere Zugangssperren werden respektiert und beenden den Ablauf ohne Umgehungsversuch. Keine TLS-Fingerprint-Rotation, Bot-Challenge-Umgehung, HTML-Login-Scraping oder automatische Strategie-Fallbacks. Referenz und laufend veränderliche Endpoint-Dokumentation: https://github.com/cyberjunky/python-garminconnect/blob/master/docs/API_ENDPOINTS.md
+Der lesende Gesundheitsabruf verwendet ausschließlich dokumentierte Tagesendpunkte für Schlaf, Ruhepuls, nächtliche HRV-Zusammenfassungen, Stress und Schritte. Werte werden über ihr Garmin-Kalenderdatum zugeordnet, validiert und nur lokal gespeichert. Endpunkte werden sparsam und mit Pausen aufgerufen; 403, 429, MFA, CAPTCHA oder andere Zugangssperren werden respektiert und beenden den Ablauf ohne Umgehungsversuch. Keine TLS-Fingerprint-Rotation, Bot-Challenge-Umgehung, HTML-Login-Scraping oder automatische Strategie-Fallbacks. Referenz: Garmin Connect Personal API Swagger-Dokumentation und https://github.com/garmin/connect-personal-api-python/blob/main/README.md
 
 Garmin-Passwörter werden nur als kurzlebige Eingabe verwendet und nie gespeichert. Falls die Sitzung dauerhaft benötigt wird, verschlüsselt LAP die Tokens mit einem Android-Keystore-Schlüssel. Diagnoseprotokolle enthalten nur Vorgang, Phase und Fehlercode, niemals Kontodaten, Tokens, Antworten, Aktivitätswerte oder FIT-Inhalte.
 
@@ -69,7 +69,7 @@ Isolierte Gerätesuite: Workout-Repository/FIT-Deduplizierung 6/6 auf P30 und Pi
 
 ## Sicherheitsgrenzen des privaten Lesezugriffs
 
-- Nur Garmin-eigene HTTPS-Hosts und lesende Aktivitäts-/Download-Requests verwenden; keine anderen Garmin-Datenbereiche anfragen.
+- Nur Garmin-eigene HTTPS-Hosts und lesende Aktivitäts-/Download-Requests sowie die ausdrücklich freigegebenen Tagesabrufe für Schlaf, Ruhepuls, HRV, Stress und Schritte verwenden; keine anderen Garmin-Datenbereiche anfragen.
 - Authentifizierung erfolgt auf dem Gerät durch die Person, der das Konto gehört. Fehlgeschlagene Standardanmeldung, CAPTCHA, MFA, Sperre oder Rate Limit wird nicht umgangen.
 - Kein Credential- oder Token-Logging, keine Klartextdateien und keine Serverweitergabe. Passwortfelder werden nach dem Request geleert. Erneute Anmeldung ist jederzeit möglich.
 - Nur GET-Aufrufe für Aktivitätssuche und Originaldatei-Download. Authentifizierungs- und Token-Erneuerungs-POSTs dürfen ausschließlich Sitzungstokens erstellen/erneuern; sie ändern keine Aktivitätsdaten. Keine Aktivitäts-Schreib-, Archivierungs-, Status- oder Löschoperationen.
@@ -78,6 +78,8 @@ Isolierte Gerätesuite: Workout-Repository/FIT-Deduplizierung 6/6 auf P30 und Pi
 - Wenn Garmin Connect den direkten Zugriff technisch blockiert, bleibt der offizielle Health-Connect-Weg beziehungsweise lokaler FIT-Import die unterstützte Alternative. LAP meldet dann den konkreten Status, behauptet aber keine Verbindung.
 
 ## Umfang der aktuellen Integration
+
+Der private Garmin-Connect-Leseabruf speichert zusätzlich tägliche Schlafdauer, Ruhepuls, nächtlichen HRV-Durchschnitt samt Garmin-Status und persönlichem Bereich, durchschnittlichen Stress sowie Schritte lokal. Fehlende Felder bleiben leer. Stress und Schritte werden als Kontext angezeigt, nicht zusätzlich in den Score gemischt. Für das autonome Signal nutzt das Modell bei ausreichender persönlicher Historie HRV; andernfalls Ruhepuls. Beide fließen nie gemeinsam ein. Die additive Datenbankmigration 11→12 ergänzt ausschließlich optionale Tagesfelder und erhält vorhandene Daten.
 
 LAP liest freigegebene Laufdaten ein und sendet die ausgewählte Trainings-ID samt zeitbasiertem Soll-Ziel über Connect IQ an das Datenfeld. Es sendet keine Aktivitäten an Garmin Connect und startet, steuert oder beendet keine Uhrenaktivität.
 

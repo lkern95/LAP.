@@ -20,13 +20,16 @@ internal class TrainingAvailabilityPlanner {
         weekNumber: Int,
         longRunMinutes: Int,
         isRecoveryWeek: Boolean,
-        candidateRuns: List<PlannedRun>
+        candidateRuns: List<PlannedRun>,
+        raceDate: LocalDate? = null
     ): TrainingWeek {
         val dayStatuses = DayOfWeek.entries.associateWith { day ->
             statusFor(profile, startsOn.plusDays((day.value - 1).toLong()))
         }
         val eligibleDates = DayOfWeek.entries.map { startsOn.plusDays((it.value - 1).toLong()) }
-            .filter { !it.isBefore(today) && statusFor(profile, it) == AvailabilityStatus.AVAILABLE }
+            .filter {
+                !it.isBefore(today) && it != raceDate && statusFor(profile, it) == AvailabilityStatus.AVAILABLE
+            }
         val selectedDates = chooseDates(
             eligibleDates,
             candidateRuns.size,
@@ -50,7 +53,9 @@ internal class TrainingAvailabilityPlanner {
             },
             isRecoveryWeek = isRecoveryWeek,
             scheduledRuns = scheduled,
-            availability = dayStatuses
+            availability = dayStatuses,
+            plannedRunCountOverride = candidateRuns.size,
+            requiredRunCountOverride = candidateRuns.count { !it.optional }
         )
     }
 
@@ -70,7 +75,9 @@ internal class TrainingAvailabilityPlanner {
             } else {
                 profile.usualRunTimeLimitMinutes
             }
-            maximumMinutes?.let { durationAdjuster.fitToAvailableTime(run, it) } ?: run
+            maximumMinutes?.let { limit ->
+                if (run.totalMinutes > limit) durationAdjuster.fitToAvailableTime(run, limit) else run
+            } ?: run
         }
 
     private fun chooseDates(
@@ -121,7 +128,9 @@ internal class TrainingAvailabilityPlanner {
                     AvailabilityMode.RECURRING -> profile.runTimeLimitsByDay[date.dayOfWeek]
                     AvailabilityMode.VARIABLE -> profile.datedAvailability[date]?.maximumMinutes
                 }
-                val adjustedRun = maximumMinutes?.let { limit -> durationAdjuster.fitToAvailableTime(it, limit) } ?: it
+                val adjustedRun = maximumMinutes?.let { limit ->
+                    if (it.totalMinutes > limit) durationAdjuster.fitToAvailableTime(it, limit) else it
+                } ?: it
                 val scheduledRun = adjustedRun.copy(
                     trainingId = "lap-run-$date-${adjustedRun.trainingType.name.lowercase()}",
                     scheduledDate = date

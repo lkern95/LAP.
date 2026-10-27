@@ -91,7 +91,8 @@ class WorkoutRepositoryTest {
                 RunDatabase.MIGRATION_7_8,
                 RunDatabase.MIGRATION_8_9,
                 RunDatabase.MIGRATION_9_10,
-                RunDatabase.MIGRATION_10_11
+                RunDatabase.MIGRATION_10_11,
+                RunDatabase.MIGRATION_11_12
             )
             .build()
 
@@ -113,7 +114,7 @@ class WorkoutRepositoryTest {
     fun migrationFromTenToElevenKeepsPopulatedWorkoutAndOriginalGarminFile() = runBlocking {
         createVersionTenDatabaseWithData()
         val database = Room.databaseBuilder(context, RunDatabase::class.java, DATABASE_NAME)
-            .addMigrations(RunDatabase.MIGRATION_10_11)
+            .addMigrations(RunDatabase.MIGRATION_10_11, RunDatabase.MIGRATION_11_12)
             .build()
 
         val workout = database.workoutDao().getBySourceId("garmin:kept-run")
@@ -126,6 +127,32 @@ class WorkoutRepositoryTest {
         assertEquals(1_024L, original?.byteCount)
         assertNull(workout?.planMatchType)
         database.close()
+    }
+
+    @Test
+    fun migrationFromElevenToTwelvePreservesExistingGarminHealthDay() = runBlocking {
+        createVersionTenDatabaseWithData()
+        val legacy = SQLiteDatabase.openDatabase(context.getDatabasePath(DATABASE_NAME).path, null, SQLiteDatabase.OPEN_READWRITE)
+        try {
+            legacy.execSQL(
+                "INSERT INTO garmin_health_days (date, sleepMinutes, restingHeartRateBpm, updatedAtMillis) VALUES (?, ?, ?, ?)",
+                arrayOf<Any>("2026-10-24", 430, 54, 10L)
+            )
+        } finally {
+            legacy.close()
+        }
+
+        val versionTwelve = Room.databaseBuilder(context, RunDatabase::class.java, DATABASE_NAME)
+            .addMigrations(RunDatabase.MIGRATION_10_11, RunDatabase.MIGRATION_11_12)
+            .build()
+        val migrated = versionTwelve.garminHealthDayDao().byDate("2026-10-24")
+
+        assertEquals(430, migrated?.sleepMinutes)
+        assertEquals(54, migrated?.restingHeartRateBpm)
+        assertNull(migrated?.hrvLastNightAverageMs)
+        assertNull(migrated?.averageStressLevel)
+        assertNull(migrated?.steps)
+        versionTwelve.close()
     }
 
     @Test

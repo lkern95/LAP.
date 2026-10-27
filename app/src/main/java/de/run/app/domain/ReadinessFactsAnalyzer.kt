@@ -1,7 +1,6 @@
 package de.run.app.domain
 
 import de.run.app.domain.model.ReadinessFacts
-import de.run.app.domain.model.TrainingProfile
 import de.run.app.domain.model.Workout
 import de.run.app.domain.model.isRunning
 import java.time.Instant
@@ -13,7 +12,7 @@ import java.time.DayOfWeek
 class ReadinessFactsAnalyzer {
     fun analyze(
         workouts: List<Workout>,
-        profile: TrainingProfile?,
+        plannedRunCount: Int?,
         now: Instant,
         today: LocalDate = now.atZone(ZoneId.systemDefault()).toLocalDate()
     ): ReadinessFacts {
@@ -29,7 +28,7 @@ class ReadinessFactsAnalyzer {
         return ReadinessFacts(
             minutesSinceLastRun = minutesSinceLastRun,
             runsThisWeek = thisWeek.size,
-            plannedRunsThisWeek = 2 + if (profile?.optionalRun == true) 1 else 0,
+            plannedRunsThisWeek = plannedRunCount?.coerceAtLeast(0) ?: 0,
             distanceThisWeekMeters = thisWeek.mapNotNull(Workout::distanceMeters).sum()
         )
     }

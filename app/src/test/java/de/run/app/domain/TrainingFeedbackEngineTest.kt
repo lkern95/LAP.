@@ -34,7 +34,7 @@ class TrainingFeedbackEngineTest {
 
         assertEquals(WorkoutPlanStatus.WELL_MATCHED, feedback.status)
         assertTrue(feedback.shortSummary.contains("Dauer passt"))
-        assertTrue(feedback.shortSummary.contains("Intensität ist ohne RPE nicht belegt"))
+        assertTrue(feedback.shortSummary.contains("deine Anstrengung ist noch offen"))
         assertTrue(feedback.nextAction.contains("Langer Lauf"))
         assertEquals(run, feedback.plannedRun)
     }
@@ -99,7 +99,7 @@ class TrainingFeedbackEngineTest {
 
         assertEquals(WorkoutPlanStatus.EXTRA_RUN, feedback.status)
         assertTrue(feedback.shortSummary.contains("30 Min. zusätzlich gelaufen"))
-        assertTrue(feedback.shortSummary.contains("Belastung ohne RPE"))
+        assertTrue(feedback.shortSummary.contains("Anstrengung und Beschwerden sind noch offen"))
         assertEquals(0, feedback.weeklyPlanProgress?.completedRuns)
         assertEquals(1, feedback.weeklyPlanProgress?.extraRuns)
     }

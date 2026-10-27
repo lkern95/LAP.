@@ -72,6 +72,21 @@ class TrainingFeedbackEngine(
             val kilometers = workout.distanceMeters?.takeIf { it.isFinite() && it > 0 }?.div(1_000.0)
             if (kilometers != null) add("Du bist ${"%.1f".format(java.util.Locale.GERMANY, kilometers)} km gelaufen.")
             addActualValues(workout, this)
+            val distanceAssessment = RunDistanceSpikeAnalyzer().assessCompleted(workout, workouts + workout, zone)
+            if (distanceAssessment.level != de.run.app.domain.model.DistanceSpikeLevel.NO_WARNING &&
+                distanceAssessment.level != de.run.app.domain.model.DistanceSpikeLevel.NOT_ASSESSABLE
+            ) {
+                val referenceKm = (distanceAssessment.referenceDistanceMeters ?: 0.0) / 1_000.0
+                val actualKm = (distanceAssessment.runDistanceMeters ?: 0.0) / 1_000.0
+                val increase = distanceAssessment.increaseMaximumPercent ?: 0
+                val levelText = when (distanceAssessment.level) {
+                    de.run.app.domain.model.DistanceSpikeLevel.NOTICE -> "auffällig"
+                    de.run.app.domain.model.DistanceSpikeLevel.WARNING -> "deutlich"
+                    de.run.app.domain.model.DistanceSpikeLevel.STRONG_WARNING -> "sehr groß"
+                    else -> ""
+                }
+                add("Distanzvergleich der letzten 30 Tage: ${"%.1f".format(java.util.Locale.GERMANY, actualKm)} km gegenüber deinem längsten Lauf von ${"%.1f".format(java.util.Locale.GERMANY, referenceKm)} km ($increase % mehr, $levelText). Das ist ein Hinweis, keine Trainingssperre.")
+            }
             when (savedMatch?.type) {
                 PlannedRunMatchType.SCHEDULED -> add("Geplant: ${savedMatch.plannedTitle} · ${savedMatch.plannedDurationMinutes} Min. Die Zuordnung wurde vor der Planneuberechnung gesichert.")
                 PlannedRunMatchType.EXTRA -> add("Dieser Lauf ist als Zusatzlauf gespeichert und erfüllt keine Planeinheit.")
@@ -258,27 +273,28 @@ class TrainingFeedbackEngine(
     ): String = when (status) {
         WorkoutPlanStatus.WELL_MATCHED -> when {
             (match?.plannedDurationMinutes ?: plannedRun?.totalMinutes) != null ->
-                "Geplant ${match?.plannedDurationMinutes ?: plannedRun?.totalMinutes} Min., gemessen ${workout.durationSeconds / 60} Min. Die Dauer passt; ${workout.feedback?.perceivedEffort?.let { "RPE $it/10 ist dokumentiert." } ?: "die Intensität ist ohne RPE nicht belegt."}"
-            else -> "Die gemessene Dauer passt zur Einheit; die Intensität ist nicht vollständig belegt."
+                "Geplant ${match?.plannedDurationMinutes ?: plannedRun?.totalMinutes} Min., gelaufen ${workout.durationSeconds / 60} Min. Die Dauer passt; " +
+                    (workout.feedback?.perceivedEffort?.let { "Anstrengung: $it von 10." } ?: "deine Anstrengung ist noch offen.")
+            else -> "Die Dauer passt. Wie anstrengend es war, ist noch offen."
         }
         WorkoutPlanStatus.SOME_DEVIATION -> when {
-            durationDeviation(workout, match) -> durationSummary(workout, match) + " Die Dauer wich von der Vorgabe ab."
+            durationDeviation(workout, match) -> durationSummary(workout, match)
             paceDeviation(workout, match) -> "Das Tempo lag außerhalb deiner persönlichen Vorgabe."
-            else -> "Der Lauf wich von der geplanten Vorgabe ab."
+            else -> "Der Lauf wich von deiner Planung ab."
         }
         WorkoutPlanStatus.HIGHER_LOAD -> when {
-            durationDeviation(workout, match, highLoad = true) -> durationSummary(workout, match) + " Das war deutlich mehr Belastung als geplant."
+            durationDeviation(workout, match, highLoad = true) -> durationSummary(workout, match) + " Das war deutlich länger als geplant."
             workout.feedback?.perceivedEffort?.let { it >= 8 } == true -> "Du hast die Belastung als sehr hoch eingeschätzt."
-            else -> "Die Belastung war höher als geplant."
+            else -> "Der Lauf war anstrengender als geplant."
         }
         WorkoutPlanStatus.EXTRA_RUN -> extraRunSummary(workout)
-        WorkoutPlanStatus.NOT_ASSESSABLE -> "Für diese Aktivität lässt sich der Laufplan nicht vergleichen."
+        WorkoutPlanStatus.NOT_ASSESSABLE -> "Der Lauf lässt sich keiner geplanten Einheit zuordnen."
     }
 
     private fun qualityHeadline(status: WorkoutPlanStatus, workout: Workout): String = when (status) {
         WorkoutPlanStatus.EXTRA_RUN -> when {
             workout.feedback?.runningAffectedBySymptoms == de.run.app.domain.model.RunningSymptomFeedback.YES -> "Beschwerden gemeldet"
-            workout.feedback?.perceivedEffort == null -> "Belastung offen"
+            workout.feedback?.perceivedEffort == null -> "Anstrengung offen"
             workout.feedback.perceivedEffort <= 4 -> "Locker empfunden"
             workout.feedback.perceivedEffort >= 8 -> "Sehr anstrengend"
             else -> "Belastung eingeschätzt"
@@ -288,7 +304,7 @@ class TrainingFeedbackEngine(
 
     private fun extraRunSummary(workout: Workout): String {
         val minutes = workout.durationSeconds / 60
-        val effort = workout.feedback?.perceivedEffort?.let { "RPE $it/10" }
+        val effort = workout.feedback?.perceivedEffort?.let { "Anstrengung: $it von 10" }
         val symptoms = when (workout.feedback?.runningAffectedBySymptoms) {
             de.run.app.domain.model.RunningSymptomFeedback.NO -> "keine Beschwerden gemeldet"
             de.run.app.domain.model.RunningSymptomFeedback.YES -> "Beschwerden gemeldet"
@@ -297,7 +313,7 @@ class TrainingFeedbackEngine(
         }
         val assessment = listOfNotNull(effort, symptoms).joinToString(" · ")
         return if (effort == null && workout.feedback?.runningAffectedBySymptoms == null) {
-            "$minutes Min. zusätzlich gelaufen. Belastung ohne RPE und Beschwerderückmeldung nicht beurteilbar."
+            "$minutes Min. zusätzlich gelaufen. Anstrengung und Beschwerden sind noch offen."
         } else "$minutes Min. zusätzlich gelaufen. $assessment."
     }
 
@@ -360,7 +376,7 @@ class TrainingFeedbackEngine(
         workout.paceSecondsPerKilometer?.let { reasons += "Durchschnittspace: ${formatPace(it.toInt())} min/km; einzelne Abschnitte sind nicht verfügbar." }
             ?: run { reasons += "Keine Pace erfasst; ein Pacevergleich ist nicht möglich." }
         workout.averageHeartRateBpm?.let { reasons += "Durchschnittspuls: $it bpm." }
-        if (workout.feedback?.perceivedEffort != null) reasons += "Deine Belastungseinschätzung: ${workout.feedback.perceivedEffort}/10."
+        if (workout.feedback?.perceivedEffort != null) reasons += "Deine Anstrengungseinschätzung: ${workout.feedback.perceivedEffort} von 10."
         if (workout.feedback?.runningAffectedBySymptoms != null) reasons += "Deine Rückmeldung zu Beschwerden wurde berücksichtigt."
     }
 

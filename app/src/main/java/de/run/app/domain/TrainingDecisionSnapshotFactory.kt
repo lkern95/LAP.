@@ -81,6 +81,6 @@ class TrainingDecisionSnapshotFactory {
         .joinToString("") { byte -> "%02x".format(byte) }
 
     private companion object {
-        const val RULE_VERSION = 1
+        const val RULE_VERSION = 3
     }
 }

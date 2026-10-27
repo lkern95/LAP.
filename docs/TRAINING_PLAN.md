@@ -17,6 +17,8 @@ Alle Laufeinheiten richten sich nach Zeit und leichtem Gesprächstempo, nicht na
 - Zwischen eingeplanten Läufen bleibt mindestens ein Tag ohne Laufeinheit, auch über Wochenwechsel hinweg. Tatsächlich absolvierte Einheiten aus der Vorwoche zählen für diese Abstandsregel mit.
 - Nicht zwei längere oder anstrengende Einheiten direkt hintereinander legen.
 - In den letzten zwei Wochen Umfang reduzieren; die Wettkampfwoche enthält nur kurze lockere Läufe und den gewählten Wettkampf.
+- Wettkampfpläne zeigen als rollierende Vorschau höchstens die nächsten zwei Wochen. Weitere Wochen und Steigerungen werden nach neu eingelesenen, tatsächlich absolvierten Läufen neu berechnet. Ein künftig geplanter Lauf zählt nicht als Beleg, dass die vorherige Steigerung vertragen oder absolviert wurde.
+- Die Erholungsansicht übernimmt die Zahl der geplanten Laufeinheiten aus derselben erzeugten Planwoche. Eine nur im Profil erlaubte Zusatz-Einheit wird nicht als geplant gezählt, solange der Planer sie nicht tatsächlich aufgenommen hat. In der Wettkampfwoche erscheint der Wettkampf als eigener Eintrag; für den Renntag wird kein zusätzlicher Trainingslauf angesetzt.
 
 ## Belastungsregel
 
@@ -25,6 +27,10 @@ Der Plan darf einzelne Wochen wiederholen. Verpasste Einheiten werden nicht nach
 ## Anpassung anhand aufgezeichneter Läufe
 
 LAP wertet die Anzahl, Dauer und Strecke der importierten Läufe der letzten vier Wochen, Läufe der Vorwoche sowie die Pause seit dem letzten Lauf aus. Wenn in der Vorwoche weniger als zwei Läufe erfasst wurden, wird eine Belastungswoche wiederholt. Nach mindestens 14 Tagen ohne erfassten Lauf wird ein kürzerer Wiedereinstieg vorgeschlagen.
+
+Eine Steigerung des langen Laufs wird nie über mehrere noch nicht absolvierte Vorschauwochen hochgerechnet. Wenn die jüngste Laufhäufigkeit beständig ist und keine auffällige Rückmeldung vorliegt, darf höchstens der erste kommende lange Lauf einen einzelnen Zehn-Minuten-Schritt über die jüngste tatsächliche Laufdauer hinausgehen. Die folgende Vorschauwoche bleibt an den gemessenen Laufdaten ausgerichtet. Diese Zehn-Minuten-Stufe ist eine vorsichtige Produktheuristik, keine wissenschaftlich bestätigte sichere Grenze.
+
+Beim Ziel „Durchlaufen“ startet der geplante längste Laufabschnitt bei höchstens 30 Minuten am Stück. Pro tatsächlich gespeichertem, gut passendem langen Lauf mit ausdrücklicher Rückmeldung „leicht“ (RPE 2–4) und „keine Beschwerden“ wächst der geplante Abschnitt innerhalb der letzten 84 Tage um 5 Minuten. Er wird auf die im Lauf verfügbare Laufzeit begrenzt; in Erholungswochen wird er um 5 Minuten gekürzt, aber nicht unter 30 Minuten. Gehpausen bleiben jederzeit erlaubt. Health Connect und der bestehende Garmin-Import liefern keine verlässliche Dauer des ununterbrochenen Laufens. LAP zeigt daher einen Trainingsvorschlag, keine Messung deiner tatsächlich am Stück gelaufenen Zeit. Ohne passende Rückmeldung wird dieser Zielabschnitt nicht weiter erhöht.
 
 Diese Regeln sind bewusst einfach und vorsichtig; sie sind kein wissenschaftlich validiertes Prognose- oder Bereitschaftsmodell. Nicht importierte Aktivitäten können fälschlich wie eine Trainingspause wirken. Deshalb zeigt die App die zugrunde liegenden Laufdaten und verwendet keine erfundenen Bereitschaftspunkte, Zielzeitprognosen oder Herzfrequenzzonen. Eine Empfehlung ersetzt keine individuelle medizinische oder trainingswissenschaftliche Beurteilung.
 

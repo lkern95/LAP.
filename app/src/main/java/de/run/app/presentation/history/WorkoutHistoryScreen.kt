@@ -211,20 +211,29 @@ internal fun WorkoutGoalProjectionCard(forecast: HalfMarathonForecast?) {
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)
     ) {
         Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
-            Text("Halbmarathon-Prognose", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(
+                if (forecast?.confidence == ForecastConfidence.TRAINING_ORIENTATION) "Deine Ausdauerbasis" else "Halbmarathon-Zeitspanne",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
             val estimate = forecast?.estimatedMinutes
             if (estimate != null) {
                 val label = when (forecast.confidence) {
-                    ForecastConfidence.TRAINING_ORIENTATION -> "Grobe Trainingsorientierung"
-                    ForecastConfidence.ROUGH -> "Grobe Orientierung"
-                    else -> "Zeitprognose"
+                    ForecastConfidence.ROUGH -> "Grobe Zeitspanne"
+                    else -> "Geschätzte Zeitspanne"
                 }
                 Text("$label: ${formatRaceTime(estimate.first)}–${formatRaceTime(estimate.last)}", style = MaterialTheme.typography.bodyMedium)
-                if (forecast.confidence != ForecastConfidence.SUPPORTED) {
-                    Text("Große Unsicherheit; Trainingspace ist keine Wettkampfpace.", style = MaterialTheme.typography.bodySmall)
-                }
+                Text(
+                    "Aus ${forecast.evidenceRuns} aktuellen Test-, Wettkampf- oder anstrengenden Läufen. Keine genaue Vorhersage.",
+                    style = MaterialTheme.typography.bodySmall
+                )
+            } else if (forecast?.confidence == ForecastConfidence.TRAINING_ORIENTATION) {
+                Text(
+                    "${forecast.evidenceRuns} lange Läufe zeigen deine Ausdauer. Für eine Zielzeit fehlt noch ein Test- oder Wettkampflauf.",
+                    style = MaterialTheme.typography.bodyMedium
+                )
             } else {
-                Text("Für eine Zeitprognose fehlen noch aktuelle, aussagekräftige Läufe.", style = MaterialTheme.typography.bodyMedium)
+                Text("Für eine Zielzeit fehlt ein Lauf über 5 km, den du als sehr anstrengend oder als Test/Wettkampf erfasst hast.", style = MaterialTheme.typography.bodyMedium)
             }
         }
     }

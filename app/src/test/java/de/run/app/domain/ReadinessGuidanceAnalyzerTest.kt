@@ -38,6 +38,13 @@ class ReadinessGuidanceAnalyzerTest {
         assertEquals(2, guidance.plannedRuns)
     }
 
+    @Test
+    fun unavailableCurrentPlanIsNotReportedAsACompletedWeek() {
+        val guidance = analyzer.analyze(facts(1, 0), false, true, false, false)
+
+        assertEquals(ReadinessGuidanceKind.NO_PLAN, guidance.kind)
+    }
+
     private fun facts(runs: Int, planned: Int, minutesSinceLastRun: Long? = 60) = ReadinessFacts(
         minutesSinceLastRun = minutesSinceLastRun,
         runsThisWeek = runs,

@@ -26,8 +26,8 @@ class PlannedWorkoutMatcher(private val planBuilder: TrainingPlanBuilder = Train
         if (!workout.isRunning()) return WorkoutPlanMatch(PlannedRunMatchType.AMBIGUOUS, rationale = "Aktivität ist kein Lauf.")
         val date = Instant.ofEpochMilli(workout.startedAtMillis).atZone(zone).toLocalDate()
         val before = priorWorkouts.filter { it.sourceId != workout.sourceId && it.endedAtMillis <= workout.startedAtMillis }
-        val plan = planBuilder.build(profile, goal, date, before)
         val weekStart = date.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
+        val plan = planBuilder.build(profile, goal, weekStart, before)
         val candidates = plan.weeks.firstOrNull { it.startsOn == weekStart }
             ?.scheduledRuns.orEmpty()
             .filter { it.scheduledDate == date || (it.scheduledDate == null && it.day == date.dayOfWeek) }

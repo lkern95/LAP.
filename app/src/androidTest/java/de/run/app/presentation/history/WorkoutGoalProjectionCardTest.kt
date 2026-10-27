@@ -2,6 +2,7 @@ package de.run.app.presentation.history
 
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
 import de.run.app.domain.ForecastConfidence
 import de.run.app.domain.GoalOutlook
@@ -14,21 +15,47 @@ import org.junit.Test
 class WorkoutGoalProjectionCardTest {
     @get:Rule val compose = createComposeRule()
 
-    @Test fun detailCardShowsSharedBroadForecastWhenPerformanceEvidenceIsLimited() {
+    @Test fun detailCardDoesNotPresentSharedEnduranceDataAsThisRunsTimeForecast() {
         compose.setContent {
             RunTheme(AppTheme.OLIVE) {
                 WorkoutGoalProjectionCard(forecast())
             }
         }
 
-        compose.onNodeWithText("Halbmarathon-Prognose").assertIsDisplayed()
-        compose.onNodeWithText("Grobe Trainingsorientierung: 2:05 h–2:45 h").assertIsDisplayed()
-        compose.onNodeWithText("Große Unsicherheit; Trainingspace ist keine Wettkampfpace.").assertIsDisplayed()
+        compose.onNodeWithText("Deine Ausdauerbasis").assertIsDisplayed()
+        compose.onNodeWithText("3 lange Läufe zeigen deine Ausdauer. Für eine Zielzeit fehlt noch ein Test- oder Wettkampflauf.").assertIsDisplayed()
+        assert(compose.onAllNodesWithText("Grobe Trainingsorientierung: 2:05 h–2:45 h").fetchSemanticsNodes().isEmpty())
+    }
+
+    @Test fun detailCardExplainsWhyAShortRunCannotProduceATimeRange() {
+        compose.setContent {
+            RunTheme(AppTheme.OLIVE) {
+                WorkoutGoalProjectionCard(forecast().copy(estimatedMinutes = null, confidence = null))
+            }
+        }
+
+        compose.onNodeWithText("Für eine Zielzeit fehlt ein Lauf über 5 km, den du als sehr anstrengend oder als Test/Wettkampf erfasst hast.").assertIsDisplayed()
+    }
+
+    @Test fun performanceRangeNamesItsSharedEvidenceInsteadOfImplyingThisRunWasTheSource() {
+        compose.setContent {
+            RunTheme(AppTheme.OLIVE) {
+                WorkoutGoalProjectionCard(forecast().copy(
+                    estimatedMinutes = 125..145,
+                    evidenceRuns = 2,
+                    confidence = ForecastConfidence.ROUGH
+                ))
+            }
+        }
+
+        compose.onNodeWithText("Halbmarathon-Zeitspanne").assertIsDisplayed()
+        compose.onNodeWithText("Grobe Zeitspanne: 2:05 h–2:25 h").assertIsDisplayed()
+        compose.onNodeWithText("Aus 2 aktuellen Test-, Wettkampf- oder anstrengenden Läufen. Keine genaue Vorhersage.").assertIsDisplayed()
     }
 
     private fun forecast() = HalfMarathonForecast(
-        estimatedMinutes = 125..165,
-        evidenceRuns = 1,
+        estimatedMinutes = null,
+        evidenceRuns = 3,
         weeksRemaining = 12,
         recentRunsPerWeek = 2,
         longestRunKilometers = 10.0,

@@ -6,8 +6,11 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 import de.run.app.domain.model.AppTheme
+
+val LocalCautionColor = staticCompositionLocalOf { Color(0xFF856000) }
 
 private val OliveScheme = lightColorScheme(
     primary = Color(0xFF344535),
@@ -96,7 +99,15 @@ fun RunTheme(theme: AppTheme, content: @Composable () -> Unit) {
             AppTheme.LIGHT -> LightScheme
         }
     }
-    CompositionLocalProvider(LocalCoachArtworkStyle provides coachArtworkStyle(theme)) {
+    val cautionColor = when (theme) {
+        AppTheme.OLIVE -> Color(0xFF856000)
+        AppTheme.DARK -> Color(0xFFE4C15A)
+        AppTheme.LIGHT -> Color(0xFF7A5700)
+    }
+    CompositionLocalProvider(
+        LocalCoachArtworkStyle provides coachArtworkStyle(theme),
+        LocalCautionColor provides cautionColor
+    ) {
         MaterialTheme(colorScheme = colors, content = content)
     }
 }

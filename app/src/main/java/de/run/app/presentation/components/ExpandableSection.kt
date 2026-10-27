@@ -17,6 +17,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 
 @Composable
@@ -25,6 +26,7 @@ fun ExpandableSection(
     expanded: Boolean,
     onToggle: () -> Unit,
     modifier: Modifier = Modifier,
+    titleStyle: TextStyle = MaterialTheme.typography.titleLarge,
     content: @Composable () -> Unit
 ) {
     Column(modifier.fillMaxWidth().animateContentSize()) {
@@ -39,8 +41,8 @@ fun ExpandableSection(
                 .padding(vertical = 6.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(title, modifier = Modifier.weight(1f), style = MaterialTheme.typography.titleLarge)
-            Text(if (expanded) "⌄" else "›", style = MaterialTheme.typography.titleLarge)
+            Text(title, modifier = Modifier.weight(1f), style = titleStyle)
+            Text(if (expanded) "⌄" else "›", style = titleStyle)
         }
         AnimatedVisibility(visible = expanded) { content() }
     }

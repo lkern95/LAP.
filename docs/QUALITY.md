@@ -15,8 +15,10 @@ Trainingshinweise sind allgemeine Fitnessplanung und keine Diagnose oder Garanti
 
 ## Emulator-Demodaten
 
-Die synthetischen Garmin-Läufe sowie Schlaf- und Ruhepulswerte liegen nur unter `app/src/debug/assets/run_demo_data.json`. Der Debug-Schalter blendet sie als Demodaten ein; echte Freigaben und Health-Connect-Einträge werden dadurch nicht verändert. Die Asset-Datei ist nicht Teil des Release-Builds.
+Die synthetischen Garmin-Läufe sowie Schlaf-, Ruhepuls-, HRV-, Stress- und Schrittwerte liegen nur unter `app/src/debug/assets/run_demo_data.json`. Der Debug-Schalter blendet sie als Demodaten samt künstlicher persönlicher Vergleichsreihe ein; echte Freigaben und Health-Connect-Einträge werden dadurch nicht verändert. Die Asset-Datei ist nicht Teil des Release-Builds.
 
 ## Sicherungen
 
 Der lokale Export und Import enthält nur LAP-eigene Daten. Änderungen an den exportierten Datenformaten benötigen eine explizite Versionsnummer und Tests für das aktuelle sowie unterstützte ältere Format. Ein Import prüft Datei, Version und Authentisierung, bevor vorhandene Daten verändert werden.
+
+Das LAP-Auswertungspaket ist ein separates, nicht importierbares ZIP-Archiv mit thematisch sortierten Markdown-Berichten. Es kann persönliche Gesundheits- und Trainingswerte enthalten und wird nur nach ausdrücklicher Nutzeraktion über den Android-Dokumentdialog an den gewählten Ort geschrieben. Vorschau und App-Nutzung schreiben keine Dateien. Es wird nicht automatisch gespeichert oder übertragen.

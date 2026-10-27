@@ -20,6 +20,7 @@ import de.run.app.data.local.AppThemeDataStore
 import de.run.app.data.local.TrainingProfileDataStore
 import de.run.app.data.local.TrainingGoalDataStore
 import de.run.app.data.backup.AndroidAppBackupRepository
+import de.run.app.data.local.AndroidEvaluationReportRepository
 import de.run.app.data.fit.AndroidFitActivityImportRepository
 import de.run.app.data.garmin.AndroidGarminConnectRepository
 import de.run.app.domain.TrainingPlanBuilder
@@ -46,6 +47,7 @@ class RunApplication : Application() {
             .addMigrations(RunDatabase.MIGRATION_7_8)
             .addMigrations(RunDatabase.MIGRATION_8_9)
             .addMigrations(RunDatabase.MIGRATION_9_10, RunDatabase.MIGRATION_10_11)
+            .addMigrations(RunDatabase.MIGRATION_11_12)
             .build()
         val backupRepository = AndroidAppBackupRepository(this, database)
         val fitActivityImportRepository = AndroidFitActivityImportRepository(contentResolver, database, filesDir, cacheDir)
@@ -78,6 +80,7 @@ class RunApplication : Application() {
             healthPermissionCoordinator = HealthConnectPermissionCoordinator(),
             backgroundSyncScheduler = WorkoutBackgroundSyncScheduler(this),
             backupRepository = backupRepository,
+            evaluationReportRepository = AndroidEvaluationReportRepository(contentResolver),
             fitActivityImportRepository = fitActivityImportRepository,
             garminConnectRepository = AndroidGarminConnectRepository(this, database)
         )
@@ -99,6 +102,7 @@ data class AppContainer(
     val healthPermissionCoordinator: HealthConnectPermissionCoordinator,
     val backgroundSyncScheduler: WorkoutBackgroundSyncScheduler,
     val backupRepository: de.run.app.domain.repository.AppBackupRepository,
+    val evaluationReportRepository: de.run.app.domain.repository.EvaluationReportRepository,
     val fitActivityImportRepository: de.run.app.domain.repository.FitActivityImportRepository,
     val garminConnectRepository: de.run.app.domain.repository.GarminConnectRepository
 )

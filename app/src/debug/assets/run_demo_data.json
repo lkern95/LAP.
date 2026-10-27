@@ -1,15 +1,327 @@
 {
   "sleepMinutes": 468,
   "restingHeartRateBpm": 56,
+  "hrvLastNightAverageMs": 48,
+  "hrvStatus": "BALANCED",
+  "hrvHistoryMs": [
+    43,
+    37,
+    44,
+    38,
+    45,
+    39,
+    46,
+    40,
+    47,
+    41,
+    48,
+    42,
+    36,
+    43,
+    37,
+    44,
+    38,
+    45,
+    39,
+    46,
+    40,
+    47,
+    41,
+    48,
+    42,
+    36,
+    43,
+    37
+  ],
+  "averageStressLevel": 24,
+  "steps": 7420,
   "workouts": [
-    { "weekDayOffset": 0, "durationMinutes": 38, "distanceMeters": 5200, "averageHeartRateBpm": 142 },
-    { "weekDayOffset": 1, "durationMinutes": 44, "distanceMeters": 6100, "averageHeartRateBpm": 146 },
-    { "weekDayOffset": 2, "durationMinutes": 76, "distanceMeters": 9800, "averageHeartRateBpm": 149 },
-    { "weekDayOffset": -7, "durationMinutes": 35, "distanceMeters": 4700, "averageHeartRateBpm": 143 },
-    { "weekDayOffset": -6, "durationMinutes": 43, "distanceMeters": 5900, "averageHeartRateBpm": 145 },
-    { "weekDayOffset": -5, "durationMinutes": 68, "distanceMeters": 8600, "averageHeartRateBpm": 148 },
-    { "weekDayOffset": -14, "durationMinutes": 33, "distanceMeters": 4500, "averageHeartRateBpm": 141 },
-    { "weekDayOffset": -13, "durationMinutes": 42, "distanceMeters": 5800, "averageHeartRateBpm": 144 },
-    { "weekDayOffset": -12, "durationMinutes": 64, "distanceMeters": 8100, "averageHeartRateBpm": 147 }
+    {
+      "weekDayOffset": -90,
+      "durationMinutes": 34,
+      "distanceMeters": 4700,
+      "averageHeartRateBpm": 139
+    },
+    {
+      "weekDayOffset": -88,
+      "durationMinutes": 36,
+      "distanceMeters": 4890,
+      "averageHeartRateBpm": 140
+    },
+    {
+      "weekDayOffset": -85,
+      "durationMinutes": 76,
+      "distanceMeters": 10020,
+      "averageHeartRateBpm": 152
+    },
+    {
+      "weekDayOffset": -83,
+      "durationMinutes": 50,
+      "distanceMeters": 6220,
+      "averageHeartRateBpm": 139
+    },
+    {
+      "weekDayOffset": -82,
+      "durationMinutes": 32,
+      "distanceMeters": 4620,
+      "averageHeartRateBpm": 142,
+      "isExtra": true
+    },
+    {
+      "weekDayOffset": -81,
+      "durationMinutes": 34,
+      "distanceMeters": 4700,
+      "averageHeartRateBpm": 139
+    },
+    {
+      "weekDayOffset": -78,
+      "durationMinutes": 74,
+      "distanceMeters": 9760,
+      "averageHeartRateBpm": 151
+    },
+    {
+      "weekDayOffset": -76,
+      "durationMinutes": 48,
+      "distanceMeters": 6030,
+      "averageHeartRateBpm": 146
+    },
+    {
+      "weekDayOffset": -74,
+      "durationMinutes": 50,
+      "distanceMeters": 6220,
+      "averageHeartRateBpm": 139
+    },
+    {
+      "weekDayOffset": -71,
+      "durationMinutes": 72,
+      "distanceMeters": 9500,
+      "averageHeartRateBpm": 150
+    },
+    {
+      "weekDayOffset": -69,
+      "durationMinutes": 46,
+      "distanceMeters": 5840,
+      "averageHeartRateBpm": 145
+    },
+    {
+      "weekDayOffset": -68,
+      "durationMinutes": 30,
+      "distanceMeters": 4260,
+      "averageHeartRateBpm": 140,
+      "isExtra": true
+    },
+    {
+      "weekDayOffset": -67,
+      "durationMinutes": 48,
+      "distanceMeters": 6030,
+      "averageHeartRateBpm": 146
+    },
+    {
+      "weekDayOffset": -64,
+      "durationMinutes": 70,
+      "distanceMeters": 9240,
+      "averageHeartRateBpm": 149
+    },
+    {
+      "weekDayOffset": -62,
+      "durationMinutes": 44,
+      "distanceMeters": 5650,
+      "averageHeartRateBpm": 144
+    },
+    {
+      "weekDayOffset": -60,
+      "durationMinutes": 46,
+      "distanceMeters": 5840,
+      "averageHeartRateBpm": 145
+    },
+    {
+      "weekDayOffset": -57,
+      "durationMinutes": 68,
+      "distanceMeters": 8980,
+      "averageHeartRateBpm": 148
+    },
+    {
+      "weekDayOffset": -55,
+      "durationMinutes": 42,
+      "distanceMeters": 5460,
+      "averageHeartRateBpm": 143
+    },
+    {
+      "weekDayOffset": -54,
+      "durationMinutes": 28,
+      "distanceMeters": 3900,
+      "averageHeartRateBpm": 138,
+      "isExtra": true
+    },
+    {
+      "weekDayOffset": -53,
+      "durationMinutes": 44,
+      "distanceMeters": 5650,
+      "averageHeartRateBpm": 144
+    },
+    {
+      "weekDayOffset": -50,
+      "durationMinutes": 66,
+      "distanceMeters": 8720,
+      "averageHeartRateBpm": 147
+    },
+    {
+      "weekDayOffset": -48,
+      "durationMinutes": 40,
+      "distanceMeters": 5270,
+      "averageHeartRateBpm": 142
+    },
+    {
+      "weekDayOffset": -46,
+      "durationMinutes": 42,
+      "distanceMeters": 5460,
+      "averageHeartRateBpm": 143
+    },
+    {
+      "weekDayOffset": -43,
+      "durationMinutes": 64,
+      "distanceMeters": 8460,
+      "averageHeartRateBpm": 146
+    },
+    {
+      "weekDayOffset": -41,
+      "durationMinutes": 38,
+      "distanceMeters": 5080,
+      "averageHeartRateBpm": 141
+    },
+    {
+      "weekDayOffset": -40,
+      "durationMinutes": 28,
+      "distanceMeters": 5160,
+      "averageHeartRateBpm": 145,
+      "isExtra": true
+    },
+    {
+      "weekDayOffset": -39,
+      "durationMinutes": 40,
+      "distanceMeters": 5270,
+      "averageHeartRateBpm": 142
+    },
+    {
+      "weekDayOffset": -36,
+      "durationMinutes": 62,
+      "distanceMeters": 8200,
+      "averageHeartRateBpm": 145
+    },
+    {
+      "weekDayOffset": -35,
+      "durationMinutes": 38,
+      "distanceMeters": 5000,
+      "averageHeartRateBpm": 142
+    },
+    {
+      "weekDayOffset": -34,
+      "durationMinutes": 37,
+      "distanceMeters": 4900,
+      "averageHeartRateBpm": 142
+    },
+    {
+      "weekDayOffset": -33,
+      "durationMinutes": 39,
+      "distanceMeters": 5200,
+      "averageHeartRateBpm": 143
+    },
+    {
+      "weekDayOffset": -32,
+      "durationMinutes": 38,
+      "distanceMeters": 5100,
+      "averageHeartRateBpm": 142
+    },
+    {
+      "weekDayOffset": -31,
+      "durationMinutes": 37,
+      "distanceMeters": 4900,
+      "averageHeartRateBpm": 142
+    },
+    {
+      "weekDayOffset": -30,
+      "durationMinutes": 39,
+      "distanceMeters": 5200,
+      "averageHeartRateBpm": 143
+    },
+    {
+      "weekDayOffset": -29,
+      "durationMinutes": 38,
+      "distanceMeters": 5000,
+      "averageHeartRateBpm": 142
+    },
+    {
+      "weekDayOffset": -28,
+      "durationMinutes": 38,
+      "distanceMeters": 5000,
+      "averageHeartRateBpm": 142
+    },
+    {
+      "weekDayOffset": -21,
+      "durationMinutes": 39,
+      "distanceMeters": 5200,
+      "averageHeartRateBpm": 143
+    },
+    {
+      "weekDayOffset": -14,
+      "durationMinutes": 33,
+      "distanceMeters": 4500,
+      "averageHeartRateBpm": 141
+    },
+    {
+      "weekDayOffset": -13,
+      "durationMinutes": 42,
+      "distanceMeters": 5800,
+      "averageHeartRateBpm": 144
+    },
+    {
+      "weekDayOffset": -12,
+      "durationMinutes": 64,
+      "distanceMeters": 8100,
+      "averageHeartRateBpm": 147
+    },
+    {
+      "weekDayOffset": -10,
+      "durationMinutes": 42,
+      "distanceMeters": 5700,
+      "averageHeartRateBpm": 145
+    },
+    {
+      "weekDayOffset": -7,
+      "durationMinutes": 35,
+      "distanceMeters": 4700,
+      "averageHeartRateBpm": 143
+    },
+    {
+      "weekDayOffset": -6,
+      "durationMinutes": 43,
+      "distanceMeters": 5900,
+      "averageHeartRateBpm": 145
+    },
+    {
+      "weekDayOffset": -5,
+      "durationMinutes": 68,
+      "distanceMeters": 8600,
+      "averageHeartRateBpm": 148
+    },
+    {
+      "weekDayOffset": 0,
+      "durationMinutes": 38,
+      "distanceMeters": 5200,
+      "averageHeartRateBpm": 142
+    },
+    {
+      "weekDayOffset": 1,
+      "durationMinutes": 44,
+      "distanceMeters": 6100,
+      "averageHeartRateBpm": 146
+    },
+    {
+      "weekDayOffset": 2,
+      "durationMinutes": 76,
+      "distanceMeters": 9800,
+      "averageHeartRateBpm": 149,
+      "isExtra": true
+    }
   ]
 }

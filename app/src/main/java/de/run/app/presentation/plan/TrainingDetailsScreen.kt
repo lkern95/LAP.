@@ -58,6 +58,12 @@ internal fun TrainingDetailsScreen(
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 WorkoutSummary(run)
+                run.durationAdjustmentExplanation?.let { DistanceAssessmentCard(it) }
+                run.distanceSpikeAssessment?.let { assessment ->
+                    if (assessment.level != de.run.app.domain.model.DistanceSpikeLevel.NO_WARNING &&
+                        assessment.level != de.run.app.domain.model.DistanceSpikeLevel.NOT_ASSESSABLE
+                    ) DistanceAssessmentCard(assessment.toUserMessage())
+                }
                 Text(run.description(), style = MaterialTheme.typography.bodySmall)
                 WorkoutFacts(run)
                 Text(run.prescription.rationale, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -71,6 +77,47 @@ internal fun TrainingDetailsScreen(
             StartOnGarminAction(showStartGuide, onStartGarminLive) { showStartGuide = true }
         }
     }
+}
+
+@Composable
+private fun DistanceAssessmentCard(message: String) {
+    Card(
+        Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.tertiaryContainer)
+    ) {
+        Text(
+            message,
+            Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onTertiaryContainer
+        )
+    }
+}
+
+private fun de.run.app.domain.model.DistanceSpikeAssessment.toUserMessage(): String {
+    val baselineKm = referenceDistanceMeters?.div(1_000.0)
+        ?.let { "%.1f km".format(java.util.Locale.GERMANY, it) } ?: "unbekannt"
+    val increase = when {
+        increaseMinimumPercent == null || increaseMaximumPercent == null -> null
+        increaseMinimumPercent == increaseMaximumPercent -> "$increaseMinimumPercent %"
+        else -> "$increaseMinimumPercent % bis $increaseMaximumPercent %"
+    }
+    val severity = when (level) {
+        de.run.app.domain.model.DistanceSpikeLevel.NOTICE -> "Auffälliger Distanzsprung"
+        de.run.app.domain.model.DistanceSpikeLevel.WARNING -> "Deutlicher Distanzsprung"
+        de.run.app.domain.model.DistanceSpikeLevel.STRONG_WARNING -> "Sehr großer Distanzsprung"
+        else -> "Distanzvergleich"
+    }
+    val distance = if (isEstimate) {
+        val minKm = (estimatedDistanceMinimumMeters ?: 0.0) / 1_000.0
+        val maxKm = (estimatedDistanceMaximumMeters ?: 0.0) / 1_000.0
+        "Die persönliche Pace ergibt für die Laufabschnitte geschätzt ${"%.1f".format(java.util.Locale.GERMANY, minKm)}–${"%.1f".format(java.util.Locale.GERMANY, maxKm)} km; Gehabschnitte sind nicht eingerechnet. "
+    } else ""
+    return "$severity: Dein längster gemessener Lauf der vorherigen 30 Tage war $baselineKm. " +
+        distance + "Die geschätzte Abweichung reicht von ${increase ?: "nicht zuverlässig bestimmbar"}. " +
+        (if (isEstimate) "Für die Warnstufe zählt vorsichtig das obere Ende der Schätzung. " else "") +
+        "Das ist ein Hinweis, keine Trainingssperre."
 }
 
 @Composable

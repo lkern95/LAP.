@@ -15,6 +15,20 @@ import org.junit.Test
 
 class UpcomingScheduledRunSelectorTest {
     @Test
+    fun flexibleRunUsesTodayInsteadOfTheWeekStartDate() {
+        val monday = LocalDate.parse("2026-11-09")
+        val today = LocalDate.parse("2026-11-11")
+        val plannedRun = PlannedRun("Lockerer Lauf", false, listOf(RunStep("Locker", 45)))
+        val week = TrainingWeek(6, monday, 45, 0, listOf(plannedRun), false)
+
+        val result = UpcomingScheduledRunSelector().selectFlexible(week, today, completedRunCount = 0)
+
+        assertEquals(plannedRun, result?.run)
+        assertEquals(today, result?.scheduledDate)
+        assertEquals(DayOfWeek.WEDNESDAY, result?.day)
+    }
+
+    @Test
     fun selectsTheNextDatedRunInsteadOfSkippingByCompletedRunCount() {
         val monday = LocalDate.parse("2026-10-26")
         val adjustedRecovery = PlannedRun("Lockerer Lauf", false, listOf(RunStep("Locker", 25)))
@@ -71,5 +85,30 @@ class UpcomingScheduledRunSelectorTest {
 
         assertEquals(nextRun, result?.run)
         assertEquals(monday.plusDays(6), result?.scheduledDate)
+    }
+
+    @Test
+    fun skipsARejectedPastRunAndSelectsTheNextFutureDate() {
+        val monday = LocalDate.parse("2026-11-09")
+        val missedRun = PlannedRun("Lockerer Lauf", false, listOf(RunStep("Locker", 45)), trainingId = "run-monday")
+        val nextRun = PlannedRun("Langer Lauf", false, listOf(RunStep("Ruhig", 70)), trainingId = "run-thursday")
+        val plan = TrainingPlan(
+            eventDate = null,
+            status = PlanStatus.READY,
+            weeks = listOf(
+                TrainingWeek(
+                    6, monday, 70, 0, listOf(missedRun, nextRun), false,
+                    scheduledRuns = listOf(
+                        ScheduledRun(DayOfWeek.MONDAY, missedRun, monday),
+                        ScheduledRun(DayOfWeek.THURSDAY, nextRun, monday.plusDays(3))
+                    )
+                )
+            )
+        )
+
+        val result = UpcomingScheduledRunSelector().select(plan, LocalDate.parse("2026-11-11"))
+
+        assertEquals(nextRun, result?.run)
+        assertEquals(LocalDate.parse("2026-11-12"), result?.scheduledDate)
     }
 }

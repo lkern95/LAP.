@@ -1,6 +1,5 @@
 package de.run.app.domain
 
-import de.run.app.domain.model.TrainingProfile
 import de.run.app.domain.model.Workout
 import java.time.Instant
 import java.time.LocalDate
@@ -19,7 +18,7 @@ class ReadinessFactsAnalyzerTest {
             workout("last-week", today.minusDays(7), 8_000.0)
         )
 
-        val facts = analyzer.analyze(workouts, profile(optional = false), now, today)
+        val facts = analyzer.analyze(workouts, plannedRunCount = 2, now, today)
 
         assertEquals(1, facts.runsThisWeek)
         assertEquals(2, facts.plannedRunsThisWeek)
@@ -28,19 +27,20 @@ class ReadinessFactsAnalyzerTest {
     }
 
     @Test
-    fun optionalThirdRunChangesOnlyTheDisplayedPlanCount() {
-        val facts = analyzer.analyze(emptyList(), profile(optional = true), now, today)
+    fun displayedPlanCountComesFromTheGeneratedPlanInsteadOfTheOptionalPreference() {
+        val facts = analyzer.analyze(emptyList(), plannedRunCount = 2, now, today)
 
         assertEquals(0, facts.runsThisWeek)
-        assertEquals(3, facts.plannedRunsThisWeek)
+        assertEquals(2, facts.plannedRunsThisWeek)
         assertEquals(null, facts.minutesSinceLastRun)
     }
 
-    private fun profile(optional: Boolean) = TrainingProfile(
-        longestComfortableRunMinutes = 60,
-        optionalRun = optional,
-        strengthSessionsPerWeek = 1
-    )
+    @Test
+    fun missingPlanDoesNotInventPlannedRuns() {
+        val facts = analyzer.analyze(emptyList(), plannedRunCount = null, now, today)
+
+        assertEquals(0, facts.plannedRunsThisWeek)
+    }
 
     private fun workout(id: String, date: LocalDate, distance: Double) = Workout(
         sourceId = id,

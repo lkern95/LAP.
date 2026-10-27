@@ -35,7 +35,12 @@ class TrainingProgressAnalyzer {
             WeeklyRunVolume(
                 weekStartsOn = weekStart,
                 runCount = runs.size,
-                minutes = runs.sumOf { (_, workout) -> (workout.durationSeconds / 60).toInt() }
+                minutes = runs.sumOf { (_, workout) -> (workout.durationSeconds / 60).toInt() },
+                distanceMeters = runs.takeIf { weekRuns ->
+                    weekRuns.isNotEmpty() && weekRuns.all { (_, workout) ->
+                        workout.distanceMeters?.let { it.isFinite() && it > 0.0 } == true
+                    }
+                }?.sumOf { (_, workout) -> workout.distanceMeters!! }
             )
         }
         return TrainingProgress(

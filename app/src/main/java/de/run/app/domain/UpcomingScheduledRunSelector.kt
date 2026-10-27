@@ -2,11 +2,21 @@ package de.run.app.domain
 
 import de.run.app.domain.model.ScheduledRun
 import de.run.app.domain.model.TrainingPlan
+import de.run.app.domain.model.TrainingWeek
 import de.run.app.domain.model.WorkoutPlanMatch
 import de.run.app.domain.model.PlannedRunMatchType
 import java.time.LocalDate
+import java.time.DayOfWeek
 
 class UpcomingScheduledRunSelector {
+    fun selectFlexible(week: TrainingWeek, today: LocalDate, completedRunCount: Int): ScheduledRun? {
+        val requiredRuns = week.runs.filterNot { it.optional }
+        val nextRun = requiredRuns.getOrNull(completedRunCount)
+            ?: (if (completedRunCount >= week.requiredRunCount) week.runs.firstOrNull { it.optional } else null)
+            ?: return null
+        return ScheduledRun(today.dayOfWeek, nextRun, today)
+    }
+
     fun select(
         plan: TrainingPlan,
         today: LocalDate,

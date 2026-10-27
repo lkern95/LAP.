@@ -114,7 +114,9 @@ data class PlannedRun(
     val trainingId: String? = null,
     val scheduledDate: LocalDate? = null,
     val trainingType: TrainingType = TrainingType.EASY,
-    val prescription: RunPrescription = RunPrescription()
+    val prescription: RunPrescription = RunPrescription(),
+    val distanceSpikeAssessment: DistanceSpikeAssessment? = null,
+    val durationAdjustmentExplanation: String? = null
 ) {
     val totalMinutes: Int
         get() = steps.sumOf(RunStep::minutes)
@@ -128,10 +130,15 @@ data class TrainingWeek(
     val runs: List<PlannedRun>,
     val isRecoveryWeek: Boolean,
     val scheduledRuns: List<ScheduledRun> = emptyList(),
-    val availability: Map<DayOfWeek, AvailabilityStatus> = emptyMap()
+    val availability: Map<DayOfWeek, AvailabilityStatus> = emptyMap(),
+    val plannedRunCountOverride: Int? = null,
+    val requiredRunCountOverride: Int? = null
 ) {
+    val plannedRunCount: Int
+        get() = plannedRunCountOverride ?: runs.size
+
     val requiredRunCount: Int
-        get() = runs.count { !it.optional }
+        get() = requiredRunCountOverride ?: runs.count { !it.optional }
 }
 
 data class ScheduledRun(
@@ -171,7 +178,23 @@ data class TrainingPlan(
     val eventDate: LocalDate?,
     val status: PlanStatus,
     val weeks: List<TrainingWeek>,
-    val adjustment: PlanAdjustment = PlanAdjustment.NO_RUN_DATA
+    val adjustment: PlanAdjustment = PlanAdjustment.NO_RUN_DATA,
+    val adjustmentExplanation: String? = null
+)
+
+enum class DistanceSpikeLevel { NO_WARNING, NOTICE, WARNING, STRONG_WARNING, NOT_ASSESSABLE }
+
+data class DistanceSpikeAssessment(
+    val level: DistanceSpikeLevel,
+    val referenceDistanceMeters: Double? = null,
+    val referenceDate: LocalDate? = null,
+    val runDistanceMeters: Double? = null,
+    val estimatedDistanceMinimumMeters: Double? = null,
+    val estimatedDistanceMaximumMeters: Double? = null,
+    val increaseMinimumPercent: Int? = null,
+    val increaseMaximumPercent: Int? = null,
+    val isEstimate: Boolean = false,
+    val unavailableReason: String? = null
 )
 
 enum class PlanAdjustment {
@@ -199,5 +222,6 @@ data class TrainingProgress(
 data class WeeklyRunVolume(
     val weekStartsOn: LocalDate,
     val runCount: Int,
-    val minutes: Int
+    val minutes: Int,
+    val distanceMeters: Double? = null
 )

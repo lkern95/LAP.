@@ -22,7 +22,7 @@ class HalfMarathonForecastAnalyzerTest {
         val result = analyzer.analyze(goal(), (1..3).map { run("easy-$it", 6_000, 2_400, daysAgo = it * 7) }, today, zone())
         assertNull(result?.estimatedMinutes)
         assertEquals(GoalOutlook.NOT_ENOUGH_DATA, result?.targetOutlook)
-        assertTrue(requireNotNull(result).explanation.contains("Lockere Trainingsläufe allein reichen dafür"))
+        assertTrue(requireNotNull(result).explanation.contains("mindestens einen Lauf über 5 km"))
     }
 
     @Test fun runThroughWithoutTargetTimeUsesConsistencyAndLongRunHistory() {
@@ -35,11 +35,12 @@ class HalfMarathonForecastAnalyzerTest {
 
         val result = requireNotNull(analyzer.analyze(goal(targetMinutes = null, runThrough = true), workouts, today, zone()))
 
-        assertTrue(result.outlookSummary.contains("auf Kurs"))
+        assertTrue(result.outlookSummary.contains("Auf Kurs"))
         assertEquals(6, result.recentRunCount)
         assertEquals(12.0, result.recentLongestRunKilometers, 0.01)
         assertEquals(10.0, result.previousLongestRunKilometers, 0.01)
         assertNull(result.estimatedMinutes)
+        assertEquals(ForecastConfidence.TRAINING_ORIENTATION, result.confidence)
     }
 
     @Test fun runThroughWithFewCurrentRunsNamesTheMissingConsistency() {
@@ -50,14 +51,14 @@ class HalfMarathonForecastAnalyzerTest {
             zone()
         ))
 
-        assertTrue(result.outlookSummary.contains("regelmäßigkeit"))
+        assertTrue(result.outlookSummary.contains("Regelmäßigkeit"))
         assertTrue(result.recommendation.contains("zwei Läufe pro Woche"))
     }
 
-    @Test fun oneModeratelyHardRecentRunProducesOnlyABroadOrientationWithoutTargetTime() {
+    @Test fun rpeSevenQualifiesAsPerformanceEvidenceAndProducesABroadTimeRange() {
         val result = requireNotNull(analyzer.analyze(
             goal(targetMinutes = null, runThrough = true),
-            listOf(run("steady-10k", 10_000, 3_300, 4, effort = 6)),
+            listOf(run("steady-10k", 10_000, 3_300, 4, effort = 7)),
             today,
             zone()
         ))
@@ -68,7 +69,78 @@ class HalfMarathonForecastAnalyzerTest {
         assertTrue(range.last - range.first >= 30)
     }
 
-    @Test fun threeLongerOrdinaryTrainingRunsProduceOnlyABroadTrainingOrientation() {
+    @Test fun rpeSixAloneDoesNotQualifyAsPerformanceEvidence() {
+        val result = analyzer.analyze(
+            goal(targetMinutes = null, runThrough = true),
+            listOf(run("moderate-10k", 10_000, 3_300, 4, effort = 6)),
+            today,
+            zone()
+        )
+
+        assertNull(result?.estimatedMinutes)
+        assertEquals(0, result?.evidenceRuns)
+    }
+
+    @Test fun twoAndAHalfKilometerActivityCannotProduceHalfMarathonTimeRange() {
+        val result = analyzer.analyze(
+            goal(targetMinutes = null, runThrough = true),
+            listOf(run("short-easy", 2_500, 1_500, 1)), today, zone()
+        )
+
+        assertNull(result?.estimatedMinutes)
+        assertEquals(0, result?.evidenceRuns)
+    }
+
+    @Test fun explicitlyMarkedRaceQualifiesWithoutRpeEntry() {
+        val result = requireNotNull(analyzer.analyze(
+            goal(targetMinutes = null, runThrough = true),
+            listOf(run("race", 5_000, 1_500, 4).copy(title = "Wettkampf")), today, zone()
+        ))
+
+        assertNotNull(result.estimatedMinutes)
+        assertEquals(1, result.evidenceRuns)
+    }
+
+    @Test fun shorterPerformanceDistanceProducesWiderRangeThanLongerOne() {
+        val short = requireNotNull(analyzer.analyze(
+            goal(targetMinutes = null, runThrough = true),
+            listOf(run("short-race", 5_000, 1_500, 4, effort = 7)), today, zone()
+        )).estimatedMinutes!!
+        val long = requireNotNull(analyzer.analyze(
+            goal(targetMinutes = null, runThrough = true),
+            listOf(run("long-race", 10_000, 3_000, 4, effort = 7)), today, zone()
+        )).estimatedMinutes!!
+
+        assertTrue(short.last - short.first > long.last - long.first)
+    }
+
+    @Test fun olderPerformanceEvidenceProducesWiderRange() {
+        val recent = requireNotNull(analyzer.analyze(
+            goal(targetMinutes = null, runThrough = true),
+            listOf(run("recent-race", 10_000, 3_000, 4, effort = 7)), today, zone()
+        )).estimatedMinutes!!
+        val older = requireNotNull(analyzer.analyze(
+            goal(targetMinutes = null, runThrough = true),
+            listOf(run("older-race", 10_000, 3_000, 70, effort = 7)), today, zone()
+        )).estimatedMinutes!!
+
+        assertTrue(older.last - older.first > recent.last - recent.first)
+    }
+
+    @Test fun disagreementBetweenPerformancesWidensRange() {
+        val single = requireNotNull(analyzer.analyze(
+            goal(targetMinutes = null, runThrough = true),
+            listOf(run("single", 10_000, 3_000, 4, effort = 7)), today, zone()
+        )).estimatedMinutes!!
+        val divergent = requireNotNull(analyzer.analyze(
+            goal(targetMinutes = null, runThrough = true),
+            listOf(run("fast", 10_000, 3_000, 4, effort = 7), run("slow", 10_000, 3_600, 10, effort = 7)), today, zone()
+        )).estimatedMinutes!!
+
+        assertTrue(divergent.last - divergent.first > single.last - single.first)
+    }
+
+    @Test fun threeLongerOrdinaryTrainingRunsProduceAnEnduranceAssessmentWithoutTimePrediction() {
         val result = requireNotNull(analyzer.analyze(
             goal(targetMinutes = null, runThrough = true),
             listOf(
@@ -80,11 +152,26 @@ class HalfMarathonForecastAnalyzerTest {
             zone()
         ))
 
-        assertNotNull(result.estimatedMinutes)
+        assertNull(result.estimatedMinutes)
         assertEquals(ForecastConfidence.TRAINING_ORIENTATION, result.confidence)
         assertEquals(3, result.evidenceRuns)
-        assertTrue(requireNotNull(result.estimatedMinutes).last - result.estimatedMinutes.first >= 100)
-        assertTrue(result.explanation.contains("Trainingspace ist keine Wettkampfpace"))
+        assertTrue(result.explanation.contains("keine Halbmarathon-Zeit"))
+        assertTrue(result.dataQuality.contains("keine Wettkampfprognose"))
+    }
+
+    @Test fun threeLongRunsAcrossTwelveWeeksGiveOnlyTrainingOrientation() {
+        val result = requireNotNull(analyzer.analyze(
+            goal(targetMinutes = null, runThrough = true),
+            listOf(
+                run("older-long-a", 9_000, 4_200, 70),
+                run("older-long-b", 10_000, 4_700, 50),
+                run("recent-long", 11_000, 5_100, 20)
+            ), today, zone()
+        ))
+
+        assertEquals(ForecastConfidence.TRAINING_ORIENTATION, result.confidence)
+        assertEquals(3, result.evidenceRuns)
+        assertTrue(result.dataQuality.contains("keine Wettkampfprognose"))
     }
 
     @Test fun singleLongEasyRunStillDoesNotProduceATimeForecast() {
@@ -100,8 +187,8 @@ class HalfMarathonForecastAnalyzerTest {
 
     @Test fun repeatedExplicitHardEffortsProduceBroadEstimateAndSeparateGoalAssessment() {
         val workouts = listOf(
-            run("hard-1", 10_000, 3_000, 7, effort = 9),
-            run("hard-2", 10_000, 2_980, 18, effort = 8)
+            run("hard-1", 10_000, 3_000, 7, effort = 9).copy(title = "Wettkampf"),
+            run("hard-2", 10_000, 2_980, 18, effort = 8).copy(title = "Wettkampf")
         ) + listOf(
             run("long", 15_000, 5_400, 12),
             run("easy-a", 6_000, 2_100, 3),

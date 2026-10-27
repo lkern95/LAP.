@@ -12,6 +12,9 @@ import de.run.app.domain.model.RaceGoal
 import de.run.app.domain.model.Workout
 import de.run.app.domain.model.WorkoutFeedback
 import de.run.app.domain.model.RunningSymptomFeedback
+import de.run.app.domain.model.PlannedRunAssessment
+import de.run.app.domain.model.PlannedRunMatchType
+import de.run.app.domain.model.WorkoutPlanMatch
 import java.time.LocalDate
 import java.time.ZoneOffset
 import org.junit.Assert.assertEquals
@@ -31,6 +34,99 @@ class TrainingPlanBuilderTest {
         assertEquals(1, plan.weeks.first().strengthSessions)
         assertEquals(2, plan.weeks.first().runs.count { !it.optional })
         assertEquals(0, plan.weeks.first().runs.count { it.optional })
+    }
+
+    @Test
+    fun `race plan initially shows only two conservative weeks without run history`() {
+        val plan = build(profile(), goal(today.plusWeeks(23)))
+
+        assertEquals(2, plan.weeks.size)
+        assertTrue(plan.weeks.all { it.longRunMinutes <= 45 })
+        assertEquals(2, plan.weeks.first().plannedRunCount)
+        assertTrue(plan.weeks.first().runs.all { it.distanceSpikeAssessment?.isEstimate != true })
+    }
+
+    @Test
+    fun `race day is shown as an event and not scheduled as a training run`() {
+        val raceDate = today.plusDays(8)
+        val plan = build(profile(), goal(raceDate))
+        val raceWeek = plan.weeks.first { raceDate in it.startsOn..it.startsOn.plusDays(6) }
+
+        assertEquals(2, raceWeek.plannedRunCount)
+        assertTrue(raceWeek.scheduledRuns.none { it.scheduledDate == raceDate })
+    }
+
+    @Test
+    fun `future preview week cannot compound progression without newly completed runs`() {
+        val recentRuns = listOf(1L, 3L, 5L, 7L, 9L, 11L).map { daysAgo ->
+            workout(today.minusDays(daysAgo)).copy(
+                endedAtMillis = today.minusDays(daysAgo).atStartOfDay().toInstant(ZoneOffset.UTC)
+                    .plusSeconds(3_000).toEpochMilli()
+            )
+        }
+
+        val plan = build(profile(), goal(today.plusWeeks(11)), recentRuns)
+
+        assertEquals(2, plan.weeks.size)
+        assertTrue(plan.weeks.first().longRunMinutes <= 60)
+        assertTrue(plan.weeks.last().longRunMinutes <= 50)
+    }
+
+    @Test
+    fun `run through goal starts with a clear thirty minute continuous block`() {
+        val plan = build(profile().copy(longestComfortableRunMinutes = 60), goal(today.plusWeeks(23)))
+        val longRun = plan.weeks.first().runs.last()
+        val easyRun = plan.weeks.first().runs.first()
+
+        assertEquals(30, longRun.steps.first { it.name.contains("am Stück") }.minutes)
+        assertEquals(1, longRun.steps.count { it.name == "Locker gehen" && it.minutes == 1 })
+        assertEquals(60, longRun.totalMinutes)
+        assertEquals(30, easyRun.steps.first { it.name.contains("am Stück") }.minutes)
+        assertEquals(45, easyRun.totalMinutes)
+    }
+
+    @Test
+    fun `one completed easy matched long run advances continuous target by five minutes`() {
+        val confirmedLongRun = workout(today.minusDays(5)).copy(
+            feedback = WorkoutFeedback(3, RunningSymptomFeedback.NO, today.toEpochDay()),
+            planMatch = WorkoutPlanMatch(
+                type = PlannedRunMatchType.SCHEDULED,
+                plannedTitle = ContinuousRunProgressionAnalyzer.LONG_RUN_TITLE,
+                plannedDurationMinutes = 60,
+                assessment = PlannedRunAssessment.WELL_MATCHED
+            )
+        )
+
+        val plan = build(
+            profile().copy(longestComfortableRunMinutes = 60),
+            goal(today.plusWeeks(23)),
+            listOf(confirmedLongRun)
+        )
+
+        val easyRun = plan.weeks.first().runs.first()
+        val longRun = plan.weeks.first().runs.last()
+        assertEquals(35, longRun.steps.first { it.name.contains("am Stück") }.minutes)
+        assertEquals(35, easyRun.steps.first { it.name.contains("durchgehend") }.minutes)
+    }
+
+    @Test
+    fun `continuous target does not progress from a matched run without easy feedback`() {
+        val unconfirmedLongRun = workout(today.minusDays(5)).copy(
+            planMatch = WorkoutPlanMatch(
+                type = PlannedRunMatchType.SCHEDULED,
+                plannedTitle = ContinuousRunProgressionAnalyzer.LONG_RUN_TITLE,
+                plannedDurationMinutes = 60,
+                assessment = PlannedRunAssessment.WELL_MATCHED
+            )
+        )
+
+        val plan = build(
+            profile().copy(longestComfortableRunMinutes = 60),
+            goal(today.plusWeeks(23)),
+            listOf(unconfirmedLongRun)
+        )
+
+        assertEquals(30, plan.weeks.first().runs.last().steps.first { it.name.contains("am Stück") }.minutes)
     }
 
     @Test
@@ -115,10 +211,12 @@ class TrainingPlanBuilderTest {
 
     @Test
     fun `every fourth week has reduced long run`() {
-        val plan = build(profile())
+        val goal = goal(today.plusWeeks(23))
+        val firstPreview = build(profile(), goal)
+        val fourthWeekPreview = builder.build(profile(), goal, today.plusWeeks(3), emptyList())
 
-        assertTrue(plan.weeks[3].isRecoveryWeek)
-        assertTrue(plan.weeks[3].longRunMinutes < plan.weeks[2].longRunMinutes)
+        assertTrue(fourthWeekPreview.weeks.first().isRecoveryWeek)
+        assertTrue(fourthWeekPreview.weeks.first().longRunMinutes < firstPreview.weeks.last().longRunMinutes)
     }
 
     @Test
@@ -231,6 +329,7 @@ class TrainingPlanBuilderTest {
 
         assertEquals(3, plan.weeks.first().runs.size)
         assertEquals(1, plan.weeks.first().runs.count { it.optional })
+        assertEquals(3, plan.weeks.first().plannedRunCount)
     }
 
     @Test
@@ -238,6 +337,8 @@ class TrainingPlanBuilderTest {
         val plan = build(profile(), workouts = listOf(workout(today.minusDays(15))))
 
         assertEquals(de.run.app.domain.model.PlanAdjustment.RETURN_GENTLY, plan.adjustment)
+        assertEquals(2, plan.weeks.first().plannedRunCount)
+        assertTrue(plan.weeks.first().runs.none { it.optional })
     }
 
     @Test

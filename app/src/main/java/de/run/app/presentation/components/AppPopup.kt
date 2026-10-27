@@ -13,6 +13,8 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
@@ -48,6 +50,9 @@ fun AppPopup(
     title: String,
     onDismiss: () -> Unit,
     coachArtwork: Boolean = false,
+    bottomSheet: Boolean = false,
+    largeTitle: Boolean = false,
+    bottomSheetHeightFraction: Float = 0.92f,
     content: @Composable () -> Unit
 ) {
     var dialogShown by remember { mutableStateOf(false) }
@@ -80,10 +85,14 @@ fun AppPopup(
                     .background(MaterialTheme.colorScheme.scrim.copy(alpha = POPUP_SCRIM_ALPHA))
                     .clickable(role = Role.Button, onClick = onDismiss)
                     .semantics { contentDescription = "Popup schließen" },
-                contentAlignment = Alignment.Center
+                contentAlignment = if (bottomSheet) Alignment.BottomCenter else Alignment.Center
             ) {
                 AnimatedVisibility(
                     visible = visible,
+                    modifier = if (bottomSheet) Modifier
+                        .fillMaxWidth()
+                        .fillMaxHeight(bottomSheetHeightFraction.coerceIn(0.5f, 0.98f))
+                        .padding(horizontal = 8.dp) else Modifier,
                     enter = fadeIn() + scaleIn(initialScale = 0.96f),
                     exit = fadeOut() + scaleOut(targetScale = 0.96f)
                 ) {
@@ -106,19 +115,26 @@ fun AppPopup(
                             content()
                         }
                     } else {
-                        val shape = RoundedCornerShape(24.dp)
+                        val shape = if (bottomSheet) RoundedCornerShape(28.dp) else RoundedCornerShape(24.dp)
                         Card(
-                            modifier = Modifier.padding(horizontal = 24.dp).clickable(onClick = {}),
+                            modifier = (if (bottomSheet) Modifier.fillMaxSize() else Modifier.padding(horizontal = 24.dp))
+                                .clickable(onClick = {}),
                             shape = shape,
                             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                             elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
                         ) {
-                            Column(Modifier.padding(20.dp)) {
+                            Column((if (bottomSheet) Modifier.fillMaxSize() else Modifier).padding(20.dp)) {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Text(title, style = MaterialTheme.typography.titleLarge, modifier = Modifier.weight(1f))
+                                Text(
+                                    title,
+                                    style = if (largeTitle) MaterialTheme.typography.headlineSmall else MaterialTheme.typography.titleLarge,
+                                    modifier = Modifier.weight(1f)
+                                )
                                     IconButton(onClick = onDismiss) { Text("×", style = MaterialTheme.typography.titleLarge) }
                                 }
-                                content()
+                                if (bottomSheet) {
+                                    Box(Modifier.weight(1f).fillMaxWidth()) { content() }
+                                } else content()
                             }
                         }
                     }

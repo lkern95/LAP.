@@ -46,6 +46,46 @@ class RunNavigationTest {
     }
 
     @Test
+    fun todayKeepsTrainingStatusAndPlanWeekClearAndNonDuplicated() {
+        composeRule.waitUntil(timeoutMillis = 5_000) {
+            composeRule.onAllNodesWithText("Planwoche").fetchSemanticsNodes().isNotEmpty()
+        }
+        composeRule.onNodeWithText("Planwoche").performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithText("Laufumfang diese Woche").assertIsDisplayed()
+        composeRule.onNodeWithText("Halbmarathon").assertIsDisplayed()
+        composeRule.onNodeWithText("Diese Woche").performScrollTo().assertIsDisplayed()
+        val hasUnclearStatus = composeRule.onAllNodesWithText("Laufdaten noch nicht verfügbar")
+            .fetchSemanticsNodes().isNotEmpty()
+        val hasStoredRun = composeRule.onAllNodesWithText("Bin ich auf Kurs?")
+            .fetchSemanticsNodes().isNotEmpty()
+        if (hasStoredRun) {
+            composeRule.onNodeWithText("Bin ich auf Kurs?").performScrollTo().assertIsDisplayed()
+            composeRule.onNodeWithText("vorgesehen", substring = true).performScrollTo().assertIsDisplayed()
+            composeRule.onNodeWithText("Läufe erfasst", substring = true).performScrollTo().assertIsDisplayed()
+            assert(composeRule.onAllNodesWithText("Laufdaten noch nicht verfügbar").fetchSemanticsNodes().isEmpty())
+            assert(composeRule.onAllNodesWithText("— /", substring = true).fetchSemanticsNodes().isEmpty())
+        } else {
+            assert(composeRule.onAllNodesWithText("Für eine Zeitprognose fehlen aktuelle, aussagekräftige Läufe.")
+                .fetchSemanticsNodes().isEmpty())
+            composeRule.onNodeWithText("Laufumfang diese Woche").assertIsDisplayed()
+            composeRule.onNodeWithText("Laufdaten nicht verfügbar", substring = true)
+                .performScrollTo().assertIsDisplayed()
+        }
+        if (hasUnclearStatus && !hasStoredRun) {
+            composeRule.onNodeWithText("LAP benötigt Zugriff auf deine Laufdaten, um dein Training auszuwerten.")
+                .assertIsDisplayed()
+            assert(composeRule.onAllNodesWithText("Freigabe fehlt").fetchSemanticsNodes().isEmpty())
+            assert(composeRule.onAllNodesWithText("Läufe nicht freigegeben").fetchSemanticsNodes().isEmpty())
+        }
+
+        val asksToGrantAccess = composeRule.onAllNodesWithText("Laufdaten freigeben")
+            .fetchSemanticsNodes().isNotEmpty()
+        if (asksToGrantAccess) {
+            assert(composeRule.onAllNodesWithText("Training starten").fetchSemanticsNodes().isEmpty())
+        }
+    }
+
+    @Test
     fun todayCalendarActionOpensTheTrainingPlan() {
         composeRule.onNodeWithContentDescription("Wochenplan öffnen").performClick()
 
@@ -131,6 +171,25 @@ class RunNavigationTest {
         composeRule.onNodeWithText("Sicherung").assertIsDisplayed()
         composeRule.onNodeWithText("Sicherung erstellen").performScrollTo().assertIsDisplayed()
         composeRule.onNodeWithText("Sicherung wiederherstellen").performScrollTo().assertIsDisplayed()
+    }
+
+    @Test
+    fun profileCanPreviewEvaluationReport() {
+        composeRule.onNodeWithText("Profil").performClick()
+        composeRule.onNodeWithText("Sicherung").performScrollTo().performClick()
+        composeRule.waitUntil(timeoutMillis = 10_000) {
+            composeRule.onAllNodesWithText("Auswertungsprotokoll anzeigen")
+                .fetchSemanticsNodes().isNotEmpty()
+        }
+
+        composeRule.onNodeWithText("Auswertungsprotokoll anzeigen")
+            .performScrollTo().performClick()
+        composeRule.waitUntil(timeoutMillis = 10_000) {
+            composeRule.onAllNodesWithText("# LAP-Auswertungsprotokoll", substring = true)
+                .fetchSemanticsNodes().isNotEmpty()
+        }
+        composeRule.onNodeWithText("# LAP-Auswertungsprotokoll", substring = true).assertIsDisplayed()
+        composeRule.onNodeWithText("Schließen").performClick()
     }
 
     @Test
@@ -307,7 +366,7 @@ class RunNavigationTest {
 
     @Test
     fun readinessDetailsCanShowDebugOnlyGarminDemoData() {
-        composeRule.onNodeWithText("Deine Trainingswerte").performScrollTo().performClick()
+        composeRule.onNodeWithText("Deine Erholungsdaten").performScrollTo().performClick()
         composeRule.waitUntil(timeoutMillis = 5_000) {
             composeRule.onAllNodesWithText("Erholung").fetchSemanticsNodes().isNotEmpty()
         }
@@ -318,8 +377,13 @@ class RunNavigationTest {
             composeRule.onAllNodesWithText("Demodaten").fetchSemanticsNodes().isNotEmpty()
         }
         composeRule.onAllNodesWithText("Demodaten").get(0).assertIsDisplayed()
-        composeRule.onNodeWithText("7 Std. 48 Min.").performScrollTo().assertIsDisplayed()
-        composeRule.onNodeWithText("3 Läufe · 21,1 km").performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithText("7 Std. 48 Min.", substring = true).performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithText("Ausgeglichen · 48 ms letzte Nacht", substring = true).performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithText("Stress Ø 24/100", substring = true).performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithText("7.420 Schritte", substring = true).performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithText("Letzte 7 Tage: 3 Läufe", substring = true).performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithText("Datenbasis: 6 von 6 Bereichen verfügbar").performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithText("Modellwert · keine medizinische Messung der körperlichen Erholung").performScrollTo().assertIsDisplayed()
         composeRule.onNodeWithText("Deine letzten Trainingswochen").performScrollTo().assertIsDisplayed()
         composeRule.onAllNodesWithText("3 absolvierte Läufe", substring = true)[0].performScrollTo().assertIsDisplayed()
         val personalFeedbackTitle = "War das Training gut?"

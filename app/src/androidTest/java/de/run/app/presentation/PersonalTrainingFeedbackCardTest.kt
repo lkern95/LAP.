@@ -3,6 +3,7 @@ package de.run.app.presentation
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.performClick
 import de.run.app.domain.TrainingFeedback
@@ -48,7 +49,9 @@ class PersonalTrainingFeedbackCardTest {
         }
 
         compose.onNodeWithText("War das Training gut?").assertIsDisplayed()
-        compose.onNodeWithText("Dauer passend · Intensität nur mit RPE beurteilbar").assertIsDisplayed()
+        compose.onNodeWithText("Dauer wie geplant").assertIsDisplayed()
+        assertTrue(compose.onAllNodesWithText("Die geplante Dauer wurde ungefähr getroffen.").fetchSemanticsNodes().isEmpty())
+        compose.onNodeWithContentDescription("War das Training gut? anzeigen").performClick()
         compose.onNodeWithText("Dein Wochenplan").assertIsDisplayed()
         compose.onNodeWithText("Diese Woche: 1 von 3 Läufen erledigt · 2 noch offen.").assertIsDisplayed()
         assertTrue(compose.onAllNodesWithText("Dein Halbmarathonziel ist noch nicht seriös einschätzbar.").fetchSemanticsNodes().isEmpty())
@@ -79,6 +82,7 @@ class PersonalTrainingFeedbackCardTest {
             }
         }
 
+        compose.onNodeWithContentDescription("War das Training gut? anzeigen").performClick()
         compose.onNodeWithText(
             "Als Nächstes: Dein Lauf dauerte 55 Min. länger als geplant. Darum wurde die nächste Einheit „Erholungslauf“ auf 15 Min. verkürzt."
         ).assertIsDisplayed()
@@ -91,22 +95,23 @@ class PersonalTrainingFeedbackCardTest {
             RunTheme(AppTheme.OLIVE) {
                 PersonalTrainingFeedbackCard(
                     TrainingFeedback(
-                        shortSummary = "25 Min. zusätzlich gelaufen. Belastung ohne RPE und Beschwerderückmeldung nicht beurteilbar.",
+                        shortSummary = "25 Min. zusätzlich gelaufen. Anstrengung und Beschwerden sind noch offen.",
                         status = WorkoutPlanStatus.EXTRA_RUN,
                         goalSummary = "",
                         reasons = emptyList(),
                         nextAction = "Als Nächstes: Erholungslauf für 25 Minuten laut Wochenplan.",
                         weeklyFocus = "",
                         weeklyPlanProgress = WeeklyPlanProgress(LocalDate.parse("2026-10-19"), 1, 2, 1),
-                        qualityHeadline = "Belastung offen"
+                        qualityHeadline = "Anstrengung offen"
                     )
                 )
             }
         }
 
-        compose.onNodeWithText("Belastung offen").assertIsDisplayed()
+        compose.onNodeWithContentDescription("War das Training gut? anzeigen").performClick()
+        compose.onNodeWithText("Anstrengung offen").assertIsDisplayed()
         compose.onNodeWithText(
-            "25 Min. zusätzlich gelaufen. Belastung ohne RPE und Beschwerderückmeldung nicht beurteilbar."
+            "25 Min. zusätzlich gelaufen. Anstrengung und Beschwerden sind noch offen."
         ).assertIsDisplayed()
         compose.onNodeWithText("Diese Woche: 1 von 2 Läufen erledigt · 1 noch offen.").assertIsDisplayed()
         compose.onNodeWithText("Als Nächstes: Erholungslauf für 25 Minuten laut Wochenplan.").assertIsDisplayed()

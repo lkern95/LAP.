@@ -17,6 +17,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
 data class GarminConnectUiState(
+    val isCheckingConnection: Boolean = true,
     val isConnected: Boolean = false,
     val isConnecting: Boolean = false,
     val needsMfa: Boolean = false,
@@ -26,7 +27,8 @@ data class GarminConnectUiState(
     val originalFitSaved: Boolean = false,
     val workoutImported: Boolean = false,
     val trainingPlanUpdated: Boolean = false,
-    val lastHistorySyncAt: Instant? = null
+    val lastHistorySyncAt: Instant? = null,
+    val lastHistorySyncSummary: GarminConnectHistorySyncSummary? = null
 )
 
 class GarminConnectViewModel(
@@ -41,7 +43,8 @@ class GarminConnectViewModel(
 
     init {
         viewModelScope.launch {
-            mutableState.value = mutableState.value.copy(isConnected = repository.isConnected())
+            val connected = repository.isConnected()
+            mutableState.value = mutableState.value.copy(isCheckingConnection = false, isConnected = connected)
         }
     }
 
@@ -106,7 +109,8 @@ class GarminConnectViewModel(
                         originalFitSaved = summary.originalsSaved > 0,
                         workoutImported = summary.newlyImported > 0 || summary.alreadyPresent > 0,
                         trainingPlanUpdated = summary.newlyImported > 0 || summary.alreadyPresent > 0,
-                        lastHistorySyncAt = Instant.ofEpochMilli(summary.completedAtMillis)
+                        lastHistorySyncAt = Instant.ofEpochMilli(summary.completedAtMillis),
+                        lastHistorySyncSummary = summary
                     )
                 }
                 is GarminConnectHistorySyncResult.Partial -> {
@@ -124,7 +128,8 @@ class GarminConnectViewModel(
                         originalFitSaved = summary.originalsSaved > 0,
                         workoutImported = summary.newlyImported > 0 || summary.alreadyPresent > 0,
                         trainingPlanUpdated = summary.newlyImported > 0 || summary.alreadyPresent > 0,
-                        lastHistorySyncAt = Instant.ofEpochMilli(summary.completedAtMillis)
+                        lastHistorySyncAt = Instant.ofEpochMilli(summary.completedAtMillis),
+                        lastHistorySyncSummary = summary
                     )
                 }
                 GarminConnectHistorySyncResult.AuthenticationExpired -> mutableState.value.copy(

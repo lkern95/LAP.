@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
@@ -47,6 +48,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.ByteArrayOutputStream
 import de.run.app.presentation.strength.StrengthViewModel
+import de.run.app.application.LapEvaluationReportInput
 import de.run.app.domain.model.AppTheme
 import de.run.app.R
 import de.run.app.presentation.components.ExpandableSection
@@ -55,6 +57,9 @@ import de.run.app.presentation.components.ExpandableSection
 fun AppearanceScreen(
     viewModel: AppearanceViewModel,
     backupViewModel: AppBackupViewModel,
+    evaluationReportViewModel: EvaluationReportViewModel,
+    evaluationReportInput: LapEvaluationReportInput,
+    isEvaluationDataLoading: Boolean,
     strengthViewModel: StrengthViewModel,
     onOpenGarmin: () -> Unit,
     onEditTrainingGoal: () -> Unit,
@@ -65,6 +70,7 @@ fun AppearanceScreen(
 ) {
     val state by viewModel.state.collectAsState()
     val backupState by backupViewModel.state.collectAsState()
+    val reportState by evaluationReportViewModel.state.collectAsState()
     val strengthState by strengthViewModel.state.collectAsState()
     val context = LocalContext.current
     val scope = androidx.compose.runtime.rememberCoroutineScope()
@@ -73,6 +79,7 @@ fun AppearanceScreen(
     var restoreUri by remember { mutableStateOf<String?>(null) }
     var pendingPassword by remember { mutableStateOf<CharArray?>(null) }
     var confirmRestore by remember { mutableStateOf(false) }
+    var showReportPreview by remember { mutableStateOf(false) }
     var trainingGoalsExpanded by rememberSaveable { mutableStateOf(false) }
     var themeExpanded by rememberSaveable { mutableStateOf(false) }
     var backupExpanded by rememberSaveable { mutableStateOf(false) }
@@ -84,6 +91,9 @@ fun AppearanceScreen(
         if (uri != null && savedPassword != null) backupViewModel.create(uri.toString(), savedPassword)
         else savedPassword?.fill('\u0000')
     }
+    val createReportDocument = rememberLauncherForActivityResult(
+        ActivityResultContracts.CreateDocument("application/zip")
+    ) { uri -> if (uri != null) evaluationReportViewModel.export(uri.toString()) }
     val openDocument = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         restoreUri = uri?.toString()
         if (uri != null) passwordDialog = true
@@ -187,6 +197,35 @@ fun AppearanceScreen(
                     Text(message, color = if (backupState.isSuccess) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error)
                 }
                 if (backupState.isWorking) CircularProgressIndicator()
+                androidx.compose.material3.HorizontalDivider()
+                Text("Die Auswertung enthält deine Trainings- und Gesundheitswerte in getrennten Dateien. Dateien werden nur erstellt, wenn du den Export startest und einen Speicherort auswählst.")
+                if (isEvaluationDataLoading) Text("Deine aktuellen Werte werden geladen …")
+                OutlinedButton(
+                    onClick = {
+                        evaluationReportViewModel.prepare(evaluationReportInput.copy(
+                            strengthCatalog = strengthState.catalog,
+                            strengthSessions = strengthState.sessions,
+                            strengthCompletionCountsLastFourWeeks = strengthState.completionCountsLastFourWeeks
+                        ))
+                        showReportPreview = true
+                    },
+                    enabled = !reportState.isExporting && !isEvaluationDataLoading
+                ) { Text("Auswertungsprotokoll anzeigen") }
+                OutlinedButton(
+                    onClick = {
+                        evaluationReportViewModel.prepare(evaluationReportInput.copy(
+                            strengthCatalog = strengthState.catalog,
+                            strengthSessions = strengthState.sessions,
+                            strengthCompletionCountsLastFourWeeks = strengthState.completionCountsLastFourWeeks
+                        ))
+                        createReportDocument.launch("LAP-Auswertungsprotokoll-${java.time.LocalDate.now()}.zip")
+                    },
+                    enabled = !reportState.isExporting && !isEvaluationDataLoading
+                ) { Text("Auswertungspaket exportieren") }
+                reportState.message?.let { message ->
+                    Text(message, color = if (reportState.succeeded) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error)
+                }
+                if (reportState.isExporting) CircularProgressIndicator()
             }
         }
         backupState.preview?.let { preview ->
@@ -202,6 +241,19 @@ fun AppearanceScreen(
                 }
             }
         }
+    }
+
+    if (showReportPreview) {
+        AlertDialog(
+            onDismissRequest = { showReportPreview = false },
+            title = { Text("LAP-Auswertung") },
+            text = {
+                Column(Modifier.heightIn(max = 520.dp).verticalScroll(rememberScrollState())) {
+                    Text(reportState.report ?: "Das Protokoll ist noch nicht verfügbar.", style = MaterialTheme.typography.bodySmall)
+                }
+            },
+            confirmButton = { TextButton(onClick = { showReportPreview = false }) { Text("Schließen") } }
+        )
     }
 
     if (passwordDialog) {

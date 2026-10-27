@@ -6,6 +6,7 @@
 - `Sleep`: Zeitraum und verfügbare Schlafphasen.
 - `HeartRateSample`: Zeitpunkt, Schläge pro Minute und Herkunft.
 - `DailyActivity`: lokales Datum, Schritte, Distanz und Kalorien, soweit vorhanden.
+- `GarminHealthDay`: lokal gespeicherte optionale Tageswerte von Garmin Connect: Schlafdauer, Ruhepuls, nächtlicher HRV-Durchschnitt mit Garmin-Status/Baseline, Stressdurchschnitt und Schritte. Fehlende Werte werden nicht abgeleitet.
 - `BodyMeasurement`: Messzeitpunkt, Messart, Wert und Herkunft.
 - Die Heute-Ansicht liest Schlafdauer und Ruhepuls direkt aus Health Connect. Diese Momentaufnahme wird nicht zusätzlich in Room gespeichert; Herkunft und Berechtigungszustand bleiben beim Abruf erhalten.
 - `TrainingPlan`: optionale Wettkampfzeit, Status, Wochen und geplante Einheiten. Ein wiederholbarer Plan zum Formhalten hat keinen Wettkampftermin.
@@ -34,4 +35,4 @@ Zeitpunkte werden mit Zeitzonenbezug gespeichert; Tagesübersichten verwenden da
 
 ## Änderungen
 
-Room-Schemaänderungen sind additiv und versioniert. Schema 8 ergänzt Aktivitätstyp und Kadenz. Schema 9 ergänzt für Garmin-Dateien die Zuordnung zur kanonischen LAP-Aktivität. Schema 11 speichert die ursprüngliche Plan-Zuordnung und Bewertung importierter Läufe in optionalen Spalten der Workout-Zeile. Vorhandene Zeilen behalten durch `RUNNING` als Migrationsstandard ihr bisheriges Verhalten; Migration 10→11 fügt ausschließlich optionale Spalten hinzu.
+Room-Schemaänderungen sind additiv und versioniert. Schema 8 ergänzt Aktivitätstyp und Kadenz. Schema 9 ergänzt für Garmin-Dateien die Zuordnung zur kanonischen LAP-Aktivität. Schema 11 speichert die ursprüngliche Plan-Zuordnung und Bewertung importierter Läufe in optionalen Spalten der Workout-Zeile. Schema 12 ergänzt ausschließlich optionale Tagesfelder für HRV, Stress und Schritte. Vorhandene Messwerte und Workout-Zeilen bleiben erhalten.

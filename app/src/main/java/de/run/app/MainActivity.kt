@@ -14,6 +14,10 @@ import de.run.app.presentation.plan.PlanViewModel
 import de.run.app.presentation.settings.AppearanceViewModel
 import de.run.app.presentation.settings.GarminConnectViewModel
 import de.run.app.presentation.settings.AppBackupViewModel
+import de.run.app.presentation.settings.EvaluationReportViewModel
+import de.run.app.presentation.settings.EvaluationReportViewModelFactory
+import de.run.app.application.ExportLapEvaluationReport
+import de.run.app.application.LapEvaluationReportBuilder
 import de.run.app.presentation.strength.StrengthViewModel
 import de.run.app.presentation.strength.StrengthViewModelFactory
 import de.run.app.presentation.readiness.ReadinessViewModel
@@ -38,17 +42,26 @@ class MainActivity : androidx.activity.ComponentActivity() {
     private val backupViewModel: AppBackupViewModel by viewModels {
         AppBackupViewModelFactory(appContainer.backupRepository)
     }
+    private val evaluationReportViewModel: EvaluationReportViewModel by viewModels {
+        EvaluationReportViewModelFactory(
+            LapEvaluationReportBuilder(),
+            ExportLapEvaluationReport(appContainer.evaluationReportRepository)
+        )
+    }
     private val strengthViewModel: StrengthViewModel by viewModels {
         StrengthViewModelFactory(
             appContainer.strengthSessionRepository,
-            appContainer.strengthCatalogRepository
+            appContainer.strengthCatalogRepository,
+            appContainer.strengthRepository
         )
     }
     private val readinessViewModel: ReadinessViewModel by viewModels {
         ReadinessViewModelFactory(
             appContainer.workoutRepository,
             appContainer.readinessHealthRepository,
-            appContainer.profileRepository
+            appContainer.profileRepository,
+            appContainer.goalRepository,
+            appContainer.planBuilder
         )
     }
     private val permissionLauncher by lazy {
@@ -70,6 +83,7 @@ class MainActivity : androidx.activity.ComponentActivity() {
                 appearanceViewModel = appearanceViewModel,
                 garminConnectViewModel = garminConnectViewModel,
                 backupViewModel = backupViewModel,
+                evaluationReportViewModel = evaluationReportViewModel,
                 strengthViewModel = strengthViewModel,
                 readinessViewModel = readinessViewModel,
                 permissionResult = permissionResult,

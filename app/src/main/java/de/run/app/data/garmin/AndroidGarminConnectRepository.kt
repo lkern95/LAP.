@@ -161,11 +161,21 @@ class AndroidGarminConnectRepository(
                     date = fresh.date.toString(),
                     sleepMinutes = fresh.sleepMinutes ?: previous?.sleepMinutes,
                     restingHeartRateBpm = fresh.restingHeartRateBpm ?: previous?.restingHeartRateBpm,
+                    hrvLastNightAverageMs = fresh.hrvLastNightAverageMs ?: previous?.hrvLastNightAverageMs,
+                    hrvWeeklyAverageMs = fresh.hrvWeeklyAverageMs ?: previous?.hrvWeeklyAverageMs,
+                    hrvStatus = fresh.hrvStatus ?: previous?.hrvStatus,
+                    hrvBaselineLowMs = fresh.hrvBaselineLowMs ?: previous?.hrvBaselineLowMs,
+                    hrvBaselineHighMs = fresh.hrvBaselineHighMs ?: previous?.hrvBaselineHighMs,
+                    averageStressLevel = fresh.averageStressLevel ?: previous?.averageStressLevel,
+                    steps = fresh.steps ?: previous?.steps,
                     updatedAtMillis = System.currentTimeMillis()
                 )
             }
             healthDays.saveAll(mergedHealth)
-            healthDaysUpdated = mergedHealth.count { it.sleepMinutes != null || it.restingHeartRateBpm != null }
+            healthDaysUpdated = mergedHealth.count { day ->
+                day.sleepMinutes != null || day.restingHeartRateBpm != null ||
+                    day.hrvLastNightAverageMs != null || day.averageStressLevel != null || day.steps != null
+            }
         } catch (error: GarminApiException) {
             healthAuthenticationExpired = error.statusCode == HTTP_UNAUTHORIZED
             healthSyncBlocked = error.statusCode == HTTP_FORBIDDEN || error.statusCode == HTTP_TOO_MANY_REQUESTS

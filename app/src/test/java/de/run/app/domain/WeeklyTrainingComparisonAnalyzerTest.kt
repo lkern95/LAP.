@@ -70,6 +70,24 @@ class WeeklyTrainingComparisonAnalyzerTest {
         assertEquals(2, result.current.heartRateRunCount)
     }
 
+    @Test
+    fun comparisonClassifiesMetricChangesByTheirMeaningAndLeavesMissingValuesUnrated() {
+        val previous = TrainingWeekStats(LocalDate.parse("2026-10-05"), 3, 18_400.0, 8_340, 434, 144)
+        val current = TrainingWeekStats(LocalDate.parse("2026-10-12"), 3, 19_200.0, 8_760, 437, 145)
+        val changes = weeklyTrainingChanges(current, previous)
+
+        assertEquals(TrainingWeekTrend.UNCHANGED, changes.runCount.trend)
+        assertEquals(TrainingWeekTrend.IMPROVED, changes.distanceMeters.trend)
+        assertEquals(800.0, changes.distanceMeters.amount!!, 0.0)
+        assertEquals(TrainingWeekTrend.IMPROVED, changes.durationSeconds.trend)
+        assertEquals(TrainingWeekTrend.DECLINED, changes.paceSecondsPerKilometer.trend)
+        assertEquals(TrainingWeekTrend.DECLINED, changes.averageHeartRateBpm.trend)
+
+        val missing = weeklyTrainingChanges(current.copy(comparablePaceSecondsPerKilometer = null), previous)
+        assertNull(missing.paceSecondsPerKilometer.amount)
+        assertNull(missing.paceSecondsPerKilometer.trend)
+    }
+
     private fun workout(day: String, id: String, meters: Double?, duration: Long, type: WorkoutActivityType = WorkoutActivityType.RUNNING): Workout {
         val start = LocalDate.parse(day).atTime(12, 0).toInstant(ZoneOffset.UTC).toEpochMilli()
         return Workout(id, "Garmin Connect", type.label, start, start + duration * 1_000, meters, activityType = type)

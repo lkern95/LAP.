@@ -5,7 +5,7 @@ import androidx.room.RoomDatabase
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 
-@Database(entities = [WorkoutEntity::class, StrengthCompletionEntity::class, TrainingDecisionEntity::class, StrengthSessionEntity::class, GarminFitFileEntity::class, GarminHealthDayEntity::class], version = 11, exportSchema = true)
+@Database(entities = [WorkoutEntity::class, StrengthCompletionEntity::class, TrainingDecisionEntity::class, StrengthSessionEntity::class, GarminFitFileEntity::class, GarminHealthDayEntity::class], version = 12, exportSchema = true)
 abstract class RunDatabase : RoomDatabase() {
     abstract fun workoutDao(): WorkoutDao
     abstract fun strengthCompletionDao(): StrengthCompletionDao
@@ -136,6 +136,18 @@ abstract class RunDatabase : RoomDatabase() {
                 db.execSQL("ALTER TABLE workouts ADD COLUMN plannedEffortMaximum INTEGER")
                 db.execSQL("ALTER TABLE workouts ADD COLUMN plannedAssessment TEXT")
                 db.execSQL("ALTER TABLE workouts ADD COLUMN plannedRationale TEXT")
+            }
+        }
+
+        val MIGRATION_11_12 = object : Migration(11, 12) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE garmin_health_days ADD COLUMN hrvLastNightAverageMs INTEGER")
+                db.execSQL("ALTER TABLE garmin_health_days ADD COLUMN hrvWeeklyAverageMs INTEGER")
+                db.execSQL("ALTER TABLE garmin_health_days ADD COLUMN hrvStatus TEXT")
+                db.execSQL("ALTER TABLE garmin_health_days ADD COLUMN hrvBaselineLowMs INTEGER")
+                db.execSQL("ALTER TABLE garmin_health_days ADD COLUMN hrvBaselineHighMs INTEGER")
+                db.execSQL("ALTER TABLE garmin_health_days ADD COLUMN averageStressLevel INTEGER")
+                db.execSQL("ALTER TABLE garmin_health_days ADD COLUMN steps INTEGER")
             }
         }
     }

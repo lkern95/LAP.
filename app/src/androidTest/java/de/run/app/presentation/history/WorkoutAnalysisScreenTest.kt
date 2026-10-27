@@ -83,7 +83,7 @@ class WorkoutAnalysisScreenTest {
                     onContinue = {},
                     onBack = {},
                     trainingFeedback = TrainingFeedback(
-                        shortSummary = "25 Min. zusätzlich gelaufen. Belastung ohne RPE und Beschwerderückmeldung nicht beurteilbar.",
+                        shortSummary = "25 Min. zusätzlich gelaufen. Anstrengung und Beschwerden sind noch offen.",
                         status = WorkoutPlanStatus.EXTRA_RUN,
                         goalSummary = "Noch nicht einschätzbar.",
                         reasons = emptyList(),
@@ -92,15 +92,16 @@ class WorkoutAnalysisScreenTest {
                         weeklyPlanProgress = de.run.app.domain.WeeklyPlanProgress(
                             java.time.LocalDate.parse("2026-11-09"), 1, 2, 1
                         ),
-                        qualityHeadline = "Belastung offen"
+                        qualityHeadline = "Anstrengung offen"
                     )
                 )
             }
         }
 
         composeRule.onNodeWithText("War das Training gut?").assertIsDisplayed()
+        composeRule.onNodeWithContentDescription("War das Training gut? anzeigen").performClick()
         composeRule.onNodeWithText(
-            "25 Min. zusätzlich gelaufen. Belastung ohne RPE und Beschwerderückmeldung nicht beurteilbar."
+            "25 Min. zusätzlich gelaufen. Anstrengung und Beschwerden sind noch offen."
         ).assertIsDisplayed()
         composeRule.onNodeWithText("Diese Woche: 1 von 2 Läufen erledigt · 1 noch offen.").assertIsDisplayed()
         composeRule.onNodeWithText("Als Nächstes: Erholungslauf für 25 Minuten laut Wochenplan.").assertIsDisplayed()

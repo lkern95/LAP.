@@ -24,7 +24,10 @@ fun TrainingAdjustmentNotice(adjustment: PlanAdjustment, explanation: String? = 
             "Dein Trainingsplan reagiert auf eine deutlich höhere Belastung. Die nächste Laufeinheit ist verkürzt und sehr leicht."
         PlanAdjustment.HOLD_AFTER_SLOWING ->
             "Dein Tempo wurde bei ähnlichem Umfang und ähnlicher Anstrengung langsamer. LAP hält den Aufbau zurück und plant eine leichtere Einheit."
-        else -> return
+        PlanAdjustment.REPEAT_WEEK -> "LAP wiederholt den aktuellen Aufbau, statt ihn zu steigern."
+        PlanAdjustment.RETURN_GENTLY -> "Nach einer Laufpause setzt LAP den Aufbau vorsichtig fort."
+        PlanAdjustment.NO_RUN_DATA -> "Ohne gespeicherte Laufhistorie baut LAP vorsichtig auf."
+        PlanAdjustment.CONTINUE -> return
     }
     Card(
         Modifier.fillMaxWidth(),
@@ -32,7 +35,7 @@ fun TrainingAdjustmentNotice(adjustment: PlanAdjustment, explanation: String? = 
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.tertiaryContainer)
     ) {
         Column(Modifier.padding(14.dp)) {
-            Text("Deine Rückmeldung ist berücksichtigt", style = MaterialTheme.typography.titleSmall)
+            Text("Warum dein Plan angepasst ist", style = MaterialTheme.typography.titleSmall)
             Text(explanation ?: message, style = MaterialTheme.typography.bodySmall)
         }
     }

@@ -7,7 +7,14 @@ data class ReadinessHealthSnapshot(
     val restingHeartRateBpm: HealthMetric<Int>,
     val isDemo: Boolean = false,
     val sleepHistory: List<DailyHealthValue> = emptyList(),
-    val restingHeartRateHistory: List<DailyHealthValue> = emptyList()
+    val restingHeartRateHistory: List<DailyHealthValue> = emptyList(),
+    val hrvLastNightAverageMs: HealthMetric<Int> = unavailableMetric(),
+    val hrvStatus: HealthMetric<String> = unavailableMetric(),
+    val hrvHistory: List<DailyHealthValue> = emptyList(),
+    val averageStressLevel: HealthMetric<Int> = unavailableMetric(),
+    val stressHistory: List<DailyHealthValue> = emptyList(),
+    val steps: HealthMetric<Int> = unavailableMetric(),
+    val stepsHistory: List<DailyHealthValue> = emptyList()
 )
 
 data class DailyHealthValue(val date: LocalDate, val value: Int)
@@ -25,3 +32,5 @@ enum class HealthMetricAvailability {
     UNAVAILABLE,
     FAILED
 }
+
+private fun <T> unavailableMetric() = HealthMetric<T>(null, HealthMetricAvailability.UNAVAILABLE)
